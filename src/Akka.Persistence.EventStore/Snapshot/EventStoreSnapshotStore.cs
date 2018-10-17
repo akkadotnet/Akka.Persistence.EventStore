@@ -201,7 +201,7 @@ namespace Akka.Persistence.EventStore.Snapshot
             }
 
             var from = slice.LastEventNumber;
-            var take = 500;
+            var take = _settings.ReadBatchSize;
             do
             {
                 if (from <= 0) break;
