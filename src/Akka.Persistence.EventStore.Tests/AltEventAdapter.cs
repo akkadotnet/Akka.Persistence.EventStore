@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Akka.Persistence.EventStore.Tests
 {
-    public class AltAdapter : DefaultAdapter
+    public class AltEventAdapter : DefaultEventAdapter
     {
         protected override byte[] ToBytes(object @event, JObject metadata, out string type, out bool isJson)
         {

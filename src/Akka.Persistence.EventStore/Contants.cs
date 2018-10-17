@@ -11,6 +11,7 @@
             public const string SenderPath = "senderPath";
             public const string SequenceNr = "sequenceNr";
             public const string WriterGuid = "writerGuid";
+            public const string Timestamp = "timestamp";
         }
     }
 }

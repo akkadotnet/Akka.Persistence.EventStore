@@ -14,7 +14,7 @@ namespace Akka.Persistence.EventStore.Journal
     {
 
         private IEventStoreConnection _eventStoreConnection;
-        private IAdapter _adapter;
+        private IEventAdapter _eventAdapter;
         private readonly EventStoreJournalSettings _settings;
 
         private readonly ILoggingAdapter _log;
@@ -33,14 +33,14 @@ namespace Akka.Persistence.EventStore.Journal
             _eventStoreConnection = EventStoreConnection.Create(connectionString, connectionName);
 
             _eventStoreConnection.ConnectAsync().Wait();
-            _adapter = BuildDefaultJournalAdapter();
+            _eventAdapter = BuildDefaultJournalAdapter();
         }
 
-        private IAdapter BuildDefaultJournalAdapter()
+        private IEventAdapter BuildDefaultJournalAdapter()
         {
             if (_settings.Adapter.ToLowerInvariant() == "default")
             {
-                return new DefaultAdapter();
+                return new DefaultEventAdapter();
             }
 
             try
@@ -49,14 +49,14 @@ namespace Akka.Persistence.EventStore.Journal
                 if (journalAdapterType == null)
                 {
                     _log.Error($"Unable to find type [{_settings.Adapter}] Adapter for EventStoreJournal. Is the assembly referenced properly? Falling back to default");
-                    return new DefaultAdapter();
+                    return new DefaultEventAdapter();
                 }
 
-                var journalAdapter = Activator.CreateInstance(journalAdapterType) as IAdapter;
+                var journalAdapter = Activator.CreateInstance(journalAdapterType) as IEventAdapter;
                 if (journalAdapter == null)
                 {
                     _log.Error($"Unable to create instance of type [{journalAdapterType.AssemblyQualifiedName}] Adapter for EventStoreJournal. Do you have an empty constructor? Falling back to default.");
-                    return new DefaultAdapter();
+                    return new DefaultEventAdapter();
                 }
 
                 return journalAdapter;
@@ -65,7 +65,7 @@ namespace Akka.Persistence.EventStore.Journal
             catch (Exception e)
             {
                 _log.Error(e, "Error loading Adapter for EventStoreJournal. Falling back to default");
-                return new DefaultAdapter();
+                return new DefaultEventAdapter();
             }
         }
 
@@ -80,7 +80,7 @@ namespace Akka.Persistence.EventStore.Journal
                 if (slice.Events.Any())
                 {
                     var @event = slice.Events.First();
-                    var adapted = _adapter.Adapt(@event);
+                    var adapted = _eventAdapter.Adapt(@event);
                     sequence = adapted.SequenceNr;
                 }
                 else
@@ -147,7 +147,7 @@ namespace Akka.Persistence.EventStore.Journal
 
                     foreach (var @event in slice.Events)
                     {
-                        var representation = _adapter.Adapt(@event, s =>
+                        var representation = _eventAdapter.Adapt(@event, s =>
                         {
                             //TODO: Is this correct?
                             var selection = context.ActorSelection(s);
@@ -189,7 +189,7 @@ namespace Akka.Persistence.EventStore.Journal
 
                 try
                 {
-                    var events = persistentMessages.Select(persistentMessage => _adapter.Adapt(persistentMessage)).ToArray();
+                    var events = persistentMessages.Select(persistentMessage => _eventAdapter.Adapt(persistentMessage)).ToArray();
 
                     var pendingWrite = new
                     {

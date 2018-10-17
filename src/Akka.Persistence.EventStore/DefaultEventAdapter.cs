@@ -9,11 +9,11 @@ using System.Text;
 
 namespace Akka.Persistence.EventStore
 {
-    public class DefaultAdapter : IAdapter
+    public class DefaultEventAdapter : IEventAdapter
     {
         private readonly JsonSerializerSettings _settings;
 
-        public DefaultAdapter()
+        public DefaultEventAdapter()
         {
             _settings = new JsonSerializerSettings
             {
@@ -35,7 +35,7 @@ namespace Akka.Persistence.EventStore
 
             var dataBytes = ToBytes(@event, metadata, out var type, out var isJson);
 
-            var metadataString = JsonConvert.SerializeObject(metadata);
+            var metadataString = JsonConvert.SerializeObject(metadata, _settings);
             var metadataBytes = Encoding.UTF8.GetBytes(metadataString);
 
             return new EventData(Guid.NewGuid(), type, isJson, dataBytes, metadataBytes);

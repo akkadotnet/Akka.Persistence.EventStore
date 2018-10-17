@@ -35,7 +35,7 @@ namespace Akka.Persistence.EventStore.Tests
             {
                 DockerClientConfiguration config;
          
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
                     config = new DockerClientConfiguration(new Uri("unix:///var/run/docker.sock"));
                 }

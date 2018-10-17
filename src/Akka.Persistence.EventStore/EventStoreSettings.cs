@@ -11,14 +11,14 @@ namespace Akka.Persistence.EventStore
         /// <summary>
         /// Connection string used to access the EventStore
         /// </summary>
-        public string ConnectionString { get; private set; }
+        public string ConnectionString { get; }
 
-        public string ConnectionName { get; private set; }
+        public string ConnectionName { get; }
 
         protected EventStoreSettings(Config config)
         {
-            ConnectionString = config.GetString("connection-string");
-            ConnectionName = config.GetString("connection-name");
+            ConnectionString = config.GetString("connection-string", "tcp://admin:changeit@localhost:1113");
+            ConnectionName = config.GetString("connection-name", "akka-persistence-eventstore");
         }
     }
 
@@ -28,18 +28,38 @@ namespace Akka.Persistence.EventStore
     /// </summary>
     public class EventStoreJournalSettings : EventStoreSettings
     {
-
         public EventStoreJournalSettings(Config config) : base(config)
         {
             if (config == null)
                 throw new ArgumentNullException(nameof(config),
                     "EventStore journal settings cannot be initialized, because required HOCON section couldn't been found");
 
-            ReadBatchSize = config.GetInt("read-batch-size");
-            Adapter = config.GetString("adapter");
+            ReadBatchSize = config.GetInt("read-batch-size", 500);
+            Adapter = config.GetString("adapter", "default");
         }
 
-        public int ReadBatchSize { get; internal set; }
-        public string Adapter { get; internal set; }
+        public int ReadBatchSize { get; }
+        public string Adapter { get; }
+    }
+
+    /// <summary>
+    /// Settings for the EventStore snapshot-store implementation, parsed from HOCON configuration.
+    /// </summary>
+    public class EventStoreSnapshotSettings : EventStoreSettings
+    {
+        public EventStoreSnapshotSettings(Config config) : base(config)
+        {
+            if (config == null)
+                throw new ArgumentNullException(nameof(config),
+                    "EventStore snapshot-store settings cannot be initialized, because required HOCON section couldn't been found");
+
+            ReadBatchSize = config.GetInt("read-batch-size", 500);
+            Adapter = config.GetString("adapter", "default");
+            Prefix = config.GetString("prefix", "snapshot@");
+        }
+
+        public int ReadBatchSize { get; }
+        public string Adapter { get; }
+        public string Prefix { get; }
     }
 }
