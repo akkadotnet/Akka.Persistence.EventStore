@@ -11,7 +11,7 @@ namespace Akka.Persistence.EventStore.Tests
         protected override bool SupportsRejectingNonSerializableObjects { get; } = false;
 
         public EventStoreJournalSpec(DatabaseFixture databaseFixture)
-            : base(CreateSpecConfig(databaseFixture), "EventStoreJournalSpec")
+            : base(CreateSpecConfig(databaseFixture), nameof(EventStoreJournalSpec))
         {
             Initialize();
         }

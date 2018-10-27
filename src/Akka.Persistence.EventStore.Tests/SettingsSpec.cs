@@ -9,13 +9,14 @@ namespace Akka.Persistence.EventStore.Tests
     public class SettingsSpec : Akka.TestKit.Xunit2.TestKit
     {
         [Fact]
-        public void Redis_JournalSettings_must_have_default_values()
+        public void EventStore_JournalSettings_must_have_default_values()
         {
-            var redisPersistence = EventStorePersistence.Get(Sys);
+            var eventStorePersistence = EventStorePersistence.Get(Sys);
 
-            redisPersistence.JournalSettings.ReadBatchSize.Should().Be(500);
-            redisPersistence.JournalSettings.Adapter.Should().Be("default");
-            redisPersistence.JournalSettings.ConnectionName.Should().Be(string.Empty);
+            eventStorePersistence.JournalSettings.ReadBatchSize.Should().Be(500);
+            eventStorePersistence.JournalSettings.Adapter.Should().Be("default");
+            eventStorePersistence.JournalSettings.ConnectionString.Should().Be(string.Empty);
+            eventStorePersistence.JournalSettings.ConnectionName.Should().Be(string.Empty);
         }
     }
 }

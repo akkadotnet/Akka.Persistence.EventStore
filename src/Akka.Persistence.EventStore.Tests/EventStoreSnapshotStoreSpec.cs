@@ -14,7 +14,7 @@ namespace Akka.Persistence.EventStore.Tests
     {
         public EventStoreSnapshotStoreSpec(DatabaseFixture databaseFixture)
                 : base(FromConfig(CreateSpecConfig(databaseFixture)).WithFallback(Config),
-                    "EventStoreSnapshotStoreSpec")
+                    nameof(EventStoreSnapshotStoreSpec))
         {
             _senderProbe = CreateTestProbe();
             Initialize();

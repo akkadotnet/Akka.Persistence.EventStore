@@ -25,10 +25,11 @@ namespace Akka.Persistence.EventStore
             var @event = snapshot;
             var metadata = JObject.Parse("{}");
 
-            metadata[Contants.EventMetadata.PersistenceId] = snapshotMetadata.PersistenceId;
-            metadata[Contants.EventMetadata.OccurredOn] = DateTimeOffset.Now;
-            metadata[Contants.EventMetadata.SequenceNr] = snapshotMetadata.SequenceNr;
-            metadata[Contants.EventMetadata.Timestamp] = snapshotMetadata.Timestamp;
+            metadata[Constants.EventMetadata.PersistenceId] = snapshotMetadata.PersistenceId;
+            metadata[Constants.EventMetadata.OccurredOn] = DateTimeOffset.Now;
+            metadata[Constants.EventMetadata.SequenceNr] = snapshotMetadata.SequenceNr;
+            metadata[Constants.EventMetadata.Timestamp] = snapshotMetadata.Timestamp;
+            metadata[Constants.EventMetadata.JournalType] = Constants.JournalTypes.SnapshotJournal;
 
             var dataBytes = ToBytes(@event, metadata, out var type, out var isJson);
 
@@ -44,11 +45,11 @@ namespace Akka.Persistence.EventStore
 
             var metadataString = Encoding.UTF8.GetString(eventData.Metadata);
             var metadata = JsonConvert.DeserializeObject<JObject>(metadataString, _settings);
-            var stream = (string) metadata.SelectToken(Contants.EventMetadata.PersistenceId);
-            var sequenceNr = (long) metadata.SelectToken(Contants.EventMetadata.SequenceNr);
-            var ts = (string) metadata.SelectToken(Contants.EventMetadata.Timestamp);
+            var stream = (string) metadata.SelectToken(Constants.EventMetadata.PersistenceId);
+            var sequenceNr = (long) metadata.SelectToken(Constants.EventMetadata.SequenceNr);
+            var ts = (string) metadata.SelectToken(Constants.EventMetadata.Timestamp);
              
-            var timestamp = metadata.Value<DateTime>(Contants.EventMetadata.Timestamp);
+            var timestamp = metadata.Value<DateTime>(Constants.EventMetadata.Timestamp);
 
             var @event = ToEvent(resolvedEvent.Event.Data, metadata);
 
@@ -63,7 +64,7 @@ namespace Akka.Persistence.EventStore
             isJson = true;
             type = eventType.Name.ToEventCase();
             var clrEventType = string.Concat(eventType.FullName, ", ", eventType.GetTypeInfo().Assembly.GetName().Name);
-            metadata[Contants.EventMetadata.ClrEventType] = clrEventType;
+            metadata[Constants.EventMetadata.ClrEventType] = clrEventType;
 
             var dataString = JsonConvert.SerializeObject(@event);
             return Encoding.UTF8.GetBytes(dataString);
@@ -72,7 +73,7 @@ namespace Akka.Persistence.EventStore
         protected virtual object ToEvent(byte[] bytes, JObject metadata)
         {
             var dataString = Encoding.UTF8.GetString(bytes);
-            var eventTypeString = (string) metadata.SelectToken(Contants.EventMetadata.ClrEventType);
+            var eventTypeString = (string) metadata.SelectToken(Constants.EventMetadata.ClrEventType);
             var eventType = Type.GetType(eventTypeString, true, true);
             return JsonConvert.DeserializeObject(dataString, eventType);
         }
