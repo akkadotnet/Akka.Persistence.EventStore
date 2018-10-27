@@ -18,8 +18,6 @@ namespace Akka.Persistence.Query.EventStore
     {
         public const string Identifier = "akka.persistence.query.journal.eventstore";
 
-//        private readonly string _connectionString;
-//        private readonly string _connectionName;
         private readonly string _writeJournalPluginId;
         private readonly int _maxBufferSize;
         private readonly bool _autoAck;
@@ -27,8 +25,6 @@ namespace Akka.Persistence.Query.EventStore
 
         public EventStoreReadJournal(ExtendedActorSystem system, Config config)
         {
-//            _connectionString = config.GetString("connection-string");
-//            _connectionName = config.GetString("connection-name");
             _writeJournalPluginId = config.GetString("write-plugin");
             _maxBufferSize = config.GetInt("max-buffer-size");
             _autoAck = config.GetBoolean("auto-ack");
