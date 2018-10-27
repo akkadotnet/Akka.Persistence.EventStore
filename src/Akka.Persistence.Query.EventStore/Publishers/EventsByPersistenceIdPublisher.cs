@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence.EventStore.Common;
 using Akka.Streams.Actors;
-using Debug = System.Diagnostics.Debug;
 
 namespace Akka.Persistence.Query.EventStore.Publishers
 {
@@ -72,9 +71,7 @@ namespace Akka.Persistence.Query.EventStore.Publishers
                     replayed.Persistent.SequenceNr,
                     replayed.Persistent.Payload
                 ));
-                Debug.WriteLine($"BUFFERING 1 message");
                 _currentOffset = replayed.Persistent.SequenceNr;
-                Debug.WriteLine($"OFFSET: {_currentOffset} / {_toOffset}");
             }
 
             MaybeReply();
@@ -88,7 +85,6 @@ namespace Akka.Persistence.Query.EventStore.Publishers
                 _journalRef.Tell(new SubscribePersistenceId(_currentOffset, _toOffset, _maxBufferSize, _persistenceId,
                     Self));
             }
-            Debug.WriteLine($"REQUESTED: {_requestedCount}");
             _requestedCount = request.Count;
             MaybeReply();
         }
@@ -104,13 +100,11 @@ namespace Akka.Persistence.Query.EventStore.Publishers
             {
                 var deliver = _buffer.Length > _requestedCount ? _requestedCount : _buffer.Length;
                 _requestedCount -= deliver;
-                Debug.WriteLine($"DELIVERING: {deliver} of {_buffer.Length}");
                 _buffer.DeliverBuffer(deliver);
             }
             
             if (_buffer.IsEmpty && (_currentOffset >= _toOffset || _isCaughtUp && !_isLive))
             {
-                Debug.WriteLine($"OnCompleteThenStop");
                 OnCompleteThenStop();
             }
         }

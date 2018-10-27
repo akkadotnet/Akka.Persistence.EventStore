@@ -1,4 +1,3 @@
-using System;
 using Akka.Actor;
 using Akka.Persistence.EventStore.Common;
 using Akka.Streams.Actors;

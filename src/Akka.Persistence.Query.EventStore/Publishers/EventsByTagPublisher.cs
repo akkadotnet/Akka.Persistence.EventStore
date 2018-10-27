@@ -1,10 +1,7 @@
-using System;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence.EventStore.Common;
 using Akka.Streams.Actors;
-using Akka.Util.Internal;
-using Debug = System.Diagnostics.Debug;
 
 namespace Akka.Persistence.Query.EventStore.Publishers
 {
