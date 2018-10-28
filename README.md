@@ -1,9 +1,11 @@
-# Akka.Persistence.EventStore 
+# Akka.Persistence.EventStore and Akka.Persistence.EventStore.Query
 
 [![NuGet Version](http://img.shields.io/nuget/v/Akka.Persistence.EventStore.svg?style=flat)](https://www.nuget.org/packages/Akka.Persistence.EventStore)
 
-Akka Persistence EventStore Plugin is a plugin for `Akka persistence` that provides one component:
- - a journal store
+Akka Persistence EventStore Plugin is a plugin for `Akka Persistence` that provides  components:
+ - write journal store
+ - snapshot store
+ - standard [persistence queries](http://getakka.net/articles/persistence/persistence-query.html)
 
 This plugin stores data in a [EventStore](https://eventstore.org) database and based on [EventStore.Client](https://www.nuget.org/packages/EventStore.Client) client library for .net45 and  [EventStore.ClientAPI.NetCore](https://www.nuget.org/packages/EventStore.ClientAPI.NetCore) client library for .netstandard2.0.
 
@@ -17,20 +19,20 @@ From `.NET CLI`
 dotnet add package Akka.Persistence.EventStore
 ```
 
-## Journal plugin
+## Write Journal plugin
 To activate the journal plugin, add the following line to your HOCON config:
 ```
 akka.persistence.journal.plugin = "akka.persistence.journal.eventstore"
 ```
 This will run the journal with its default settings. The default settings can be changed with the configuration properties defined in your HOCON config:
 
-### Configuration
+#### Configuration
 - `connection-string` - connection string, as described here: https://eventstore.org/docs/dotnet-api/connecting-to-a-server/index.html#connection-string
 - `connection-name ` - connection name to tell eventstore server who is connecting
 - `read-batch-size ` - when reading back events, how many to bring back at a time
 - `adapter ` - controls how the event data and metadata is stored and retrieved. See Adapter section below for more information.
 
-#### Example
+#### Example HOCON Configuration
 ```
  akka.persistence {
     journal {
