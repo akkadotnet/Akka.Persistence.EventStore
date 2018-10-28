@@ -1,44 +1,44 @@
 using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence.EventStore.Common;
+using Akka.Persistence.Query;
 using Akka.Streams.Actors;
 
-namespace Akka.Persistence.Query.EventStore.Publishers
+namespace Akka.Persistence.EventStore.Query.Publishers
 {
-    internal class EventsByTagPublisher : ActorPublisher<EventEnvelope>
+    internal class EventsByPersistenceIdPublisher : ActorPublisher<EventEnvelope>
     {
         private readonly ILoggingAdapter _log = Context.GetLogger();
 
         private readonly DeliveryBuffer<EventEnvelope> _buffer;
         private readonly IActorRef _journalRef;
         private readonly bool _isLive;
-        private readonly string _tag;
+        private readonly string _persistenceId;
         private readonly long _toOffset;
         private readonly int _maxBufferSize;
         private long _currentOffset;
         private long _requestedCount = -1L;
         private bool _isCaughtUp;
 
-
-        public EventsByTagPublisher(string tag, bool isLive, long fromOffset, long toOffset, int maxBufferSize,
-            string writeJournalPluginId)
+        public EventsByPersistenceIdPublisher(string persistenceId, long fromSequenceNr, long toSequenceNr,
+            int maxBufferSize, string writeJournalPluginId, bool isLive)
         {
-            _tag = tag;
-            _isLive = isLive;
-            _currentOffset = fromOffset;
-            _toOffset = toOffset;
+            _persistenceId = persistenceId;
+            _currentOffset = fromSequenceNr;
+            _toOffset = toSequenceNr;
             _maxBufferSize = maxBufferSize;
+            _isLive = isLive;
 
             _buffer = new DeliveryBuffer<EventEnvelope>(OnNext);
             _journalRef = Persistence.Instance.Apply(Context.System).JournalFor(writeJournalPluginId);
         }
 
-        public static Props Props(string tag, bool isLive, long fromOffset, long toOffset, int maxBufferSize,
-            string writeJournalPluginId)
+        public static Props Props(string persistenceId, long fromSequenceNr, long toSequenceNr,
+            int maxBufferSize, string writeJournalPluginId, bool isLive)
         {
             return Actor.Props.Create(() =>
-                    new EventsByTagPublisher(tag, isLive, fromOffset, toOffset, maxBufferSize,
-                        writeJournalPluginId));
+                    new EventsByPersistenceIdPublisher(persistenceId, fromSequenceNr, toSequenceNr,
+                        maxBufferSize, writeJournalPluginId, isLive));
         }
 
         protected override bool Receive(object message)
@@ -50,7 +50,7 @@ namespace Akka.Persistence.Query.EventStore.Publishers
                               _isCaughtUp = true;
                               MaybeReply();
                           })
-                          .With<ReplayedTaggedMessage>(OnReplayedMessage)
+                          .With<ReplayedMessage>(OnReplayedMessage)
                           .With<Request>(OnRequest)
                           .With<Cancel>(OnCancel)
                           .WasHandled;
@@ -61,17 +61,18 @@ namespace Akka.Persistence.Query.EventStore.Publishers
             OnErrorThenStop(cause);
         }
 
-        private void OnReplayedMessage(ReplayedTaggedMessage replayed)
+        private void OnReplayedMessage(ReplayedMessage replayed)
         {
-            // no need to buffer live messages if subscription is not live
-            if (_isLive || !_isCaughtUp)
+            // no need to buffer live messages if subscription is not live or toOffset is exceeded
+            if ((_isLive || !_isCaughtUp) && _currentOffset < _toOffset)
             {
                 _buffer.Add(new EventEnvelope(
-                    new Sequence(replayed.Offset),
-                    replayed.Persistent.PersistenceId,
+                    new Sequence(replayed.Persistent.SequenceNr),
+                    _persistenceId,
                     replayed.Persistent.SequenceNr,
-                    replayed.Persistent.Payload));
-                _currentOffset = replayed.Offset;
+                    replayed.Persistent.Payload
+                ));
+                _currentOffset = replayed.Persistent.SequenceNr;
             }
 
             MaybeReply();
@@ -82,9 +83,9 @@ namespace Akka.Persistence.Query.EventStore.Publishers
             if (_requestedCount == -1L)
             {
                 // _requested == -1L means that Request is first one, so we can start EventStore subscription
-                _journalRef.Tell(new ReplayTaggedMessages(_currentOffset, _toOffset, _maxBufferSize, _tag, Self));
+                _journalRef.Tell(new SubscribePersistenceId(_currentOffset, _toOffset, _maxBufferSize, _persistenceId,
+                    Self));
             }
-
             _requestedCount = request.Count;
             MaybeReply();
         }
@@ -102,8 +103,8 @@ namespace Akka.Persistence.Query.EventStore.Publishers
                 _requestedCount -= deliver;
                 _buffer.DeliverBuffer(deliver);
             }
-
-            if (_buffer.IsEmpty && !_isLive && _isCaughtUp)
+            
+            if (_buffer.IsEmpty && (_currentOffset >= _toOffset || _isCaughtUp && !_isLive))
             {
                 OnCompleteThenStop();
             }

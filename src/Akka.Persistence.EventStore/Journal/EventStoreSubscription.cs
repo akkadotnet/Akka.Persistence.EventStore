@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Akka.Actor;
 using Akka.Persistence.EventStore.Common;
+using Akka.Persistence.EventStore.Query;
 using EventStore.ClientAPI;
 
 namespace Akka.Persistence.EventStore.Journal

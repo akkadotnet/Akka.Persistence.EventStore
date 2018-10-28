@@ -125,5 +125,9 @@ akka.persistence {
 }
 ```
 
+# Akka.Persistence.EventStore.Query
+
+
+
 ## Maintainer
 - [ryandanthony](https://github.com/ryandanthony)

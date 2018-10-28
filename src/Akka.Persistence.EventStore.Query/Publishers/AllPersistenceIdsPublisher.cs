@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Persistence.EventStore.Common;
 using Akka.Streams.Actors;
 
-namespace Akka.Persistence.Query.EventStore.Publishers
+namespace Akka.Persistence.EventStore.Query.Publishers
 {
     internal sealed class AllPersistenceIdsPublisher : ActorPublisher<string>
     {

@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using Akka.Actor;
 using Akka.Event;
 
-namespace Akka.Persistence.EventStore.Common
+
+
+namespace Akka.Persistence.EventStore.Query
 {
     
     /// <summary>
@@ -17,7 +17,7 @@ namespace Akka.Persistence.EventStore.Common
     /// Subscribe the `sender` to changes (appended events) for a specific `persistenceId`.
     /// Used by query-side.
     /// </summary>
-    [Serializable]
+//    [Serializable]
     public sealed class SubscribePersistenceId : ISubscriptionCommand
     {
         /// <summary>
@@ -73,7 +73,7 @@ namespace Akka.Persistence.EventStore.Common
     /// subscriber followed by <see cref="PersistenceIdAdded"/> messages when new persistenceIds
     /// are created.
     /// </summary>
-    [Serializable]
+//    [Serializable]
     public sealed class SubscribeAllPersistenceIds : ISubscriptionCommand
     {
         /// <summary>
@@ -83,7 +83,7 @@ namespace Akka.Persistence.EventStore.Common
         private SubscribeAllPersistenceIds() { }
     }
 
-    [Serializable]
+//    [Serializable]
     public sealed class CaughtUp : IDeadLetterSuppression
     {
         public static CaughtUp Instance => new CaughtUp();
@@ -92,7 +92,7 @@ namespace Akka.Persistence.EventStore.Common
     /// <summary>
     /// Commands journal to reply tagged messages.
     /// </summary>
-    [Serializable]
+//    [Serializable]
     public sealed class ReplayTaggedMessages : IJournalRequest
     {
         /// <summary>
@@ -153,7 +153,7 @@ namespace Akka.Persistence.EventStore.Common
     /// <summary>
     /// Holds <see cref="Persistent"/> event previously requested by <see cref="ReplayedTaggedMessage"/>.
     /// </summary>
-    [Serializable]
+//    [Serializable]
     public sealed class ReplayedTaggedMessage : INoSerializationVerificationNeeded, IDeadLetterSuppression
     {
         /// <summary>

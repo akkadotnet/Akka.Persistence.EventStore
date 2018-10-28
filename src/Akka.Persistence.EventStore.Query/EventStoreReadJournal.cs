@@ -1,13 +1,15 @@
 ﻿using System;
 using Akka.Actor;
 using Akka.Configuration;
+using Akka.Persistence.EventStore.Query.Publishers;
 using Akka.Persistence.Journal;
-using Akka.Persistence.Query.EventStore.Publishers;
+using Akka.Persistence.Query;
 using Akka.Streams.Dsl;
 using EventStore.ClientAPI;
 
-namespace Akka.Persistence.Query.EventStore
+namespace Akka.Persistence.EventStore.Query
 {
+    /// <inheritdoc />
     public class EventStoreReadJournal : IReadJournal,
             IPersistenceIdsQuery,
             ICurrentPersistenceIdsQuery,
@@ -16,6 +18,9 @@ namespace Akka.Persistence.Query.EventStore
             IEventsByTagQuery,
             ICurrentEventsByTagQuery
     {
+        /// <summary>
+        /// HOCON identifier
+        /// </summary>
         public const string Identifier = "akka.persistence.query.journal.eventstore";
 
         private readonly string _writeJournalPluginId;
@@ -23,6 +28,7 @@ namespace Akka.Persistence.Query.EventStore
         private readonly bool _autoAck;
 
 
+        /// <inheritdoc />
         public EventStoreReadJournal(ExtendedActorSystem system, Config config)
         {
             _writeJournalPluginId = config.GetString("write-plugin");
@@ -37,7 +43,7 @@ namespace Akka.Persistence.Query.EventStore
         public static Config DefaultConfiguration()
         {
             return ConfigurationFactory.FromResource<EventStoreReadJournal>(
-                "Akka.Persistence.Query.EventStore.reference.conf");
+                "Akka.Persistence.EventStore.Query.reference.conf");
         }
 
         /// <summary>

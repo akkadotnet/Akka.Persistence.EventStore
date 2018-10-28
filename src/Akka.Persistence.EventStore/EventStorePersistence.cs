@@ -1,8 +1,6 @@
 ﻿using Akka.Actor;
 using Akka.Configuration;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Akka.Persistence.EventStore
 {

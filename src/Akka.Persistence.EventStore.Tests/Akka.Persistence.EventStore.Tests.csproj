@@ -21,8 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Akka.Persistence.EventStore.Query\Akka.Persistence.EventStore.Query.csproj" />
     <ProjectReference Include="..\Akka.Persistence.EventStore\Akka.Persistence.EventStore.csproj" />
-    <ProjectReference Include="..\Akka.Persistence.Query.EventStore\Akka.Persistence.Query.EventStore.csproj" />
+    
   </ItemGroup>
 
   <ItemGroup>

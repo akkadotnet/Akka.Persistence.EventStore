@@ -1,6 +1,6 @@
 using Akka.Configuration;
 using Akka.Persistence.Query;
-using Akka.Persistence.Query.EventStore;
+using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.TCK.Query;
 using Xunit;
 using Xunit.Abstractions;

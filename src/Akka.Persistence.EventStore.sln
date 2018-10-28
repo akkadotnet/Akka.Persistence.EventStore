@@ -3,15 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Akka.Persistence.EventStore", "Akka.Persistence.EventStore\Akka.Persistence.EventStore.csproj", "{05C2B0DF-1285-4F86-9B2F-EDD667F61C07}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.EventStore", "Akka.Persistence.EventStore\Akka.Persistence.EventStore.csproj", "{05C2B0DF-1285-4F86-9B2F-EDD667F61C07}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Akka.Persistence.EventStore.Tests", "Akka.Persistence.EventStore.Tests\Akka.Persistence.EventStore.Tests.csproj", "{148F47D8-C3FA-4304-A97E-9D15E410F634}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.EventStore.Tests", "Akka.Persistence.EventStore.Tests\Akka.Persistence.EventStore.Tests.csproj", "{148F47D8-C3FA-4304-A97E-9D15E410F634}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.Query.EventStore", "Akka.Persistence.Query.EventStore\Akka.Persistence.Query.EventStore.csproj", "{5E7E971F-7329-433C-B05B-9E58F9943C27}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.EventStore.Common", "Akka.Persistence.EventStore.Common\Akka.Persistence.EventStore.Common.csproj", "{A6ABB41D-BC3E-4D00-B075-4E5093ED752F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.EventStore.Query", "Akka.Persistence.EventStore.Query\Akka.Persistence.EventStore.Query.csproj", "{5E7E971F-7329-433C-B05B-9E58F9943C27}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{EDBF7891-3026-4E7D-8957-AFCBF614D757}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+		common.props = common.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{EB595937-7DC0-442B-81E3-8BE529FA3F75}"
 EndProject
@@ -33,10 +35,6 @@ Global
 		{5E7E971F-7329-433C-B05B-9E58F9943C27}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5E7E971F-7329-433C-B05B-9E58F9943C27}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5E7E971F-7329-433C-B05B-9E58F9943C27}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A6ABB41D-BC3E-4D00-B075-4E5093ED752F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A6ABB41D-BC3E-4D00-B075-4E5093ED752F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A6ABB41D-BC3E-4D00-B075-4E5093ED752F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A6ABB41D-BC3E-4D00-B075-4E5093ED752F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,7 +44,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{05C2B0DF-1285-4F86-9B2F-EDD667F61C07} = {EDBF7891-3026-4E7D-8957-AFCBF614D757}
-		{A6ABB41D-BC3E-4D00-B075-4E5093ED752F} = {EDBF7891-3026-4E7D-8957-AFCBF614D757}
 		{5E7E971F-7329-433C-B05B-9E58F9943C27} = {EDBF7891-3026-4E7D-8957-AFCBF614D757}
 		{148F47D8-C3FA-4304-A97E-9D15E410F634} = {EB595937-7DC0-442B-81E3-8BE529FA3F75}
 	EndGlobalSection

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Akka.Persistence.Query.EventStore
+namespace Akka.Persistence.EventStore.Query
 {
     internal class DeliveryBuffer<T>
     {

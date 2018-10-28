@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Akka.Event;
 using Akka.IO;
 using Akka.Persistence.EventStore.Common;
+using Akka.Persistence.EventStore.Query;
 using Akka.Util.Internal;
 
 namespace Akka.Persistence.EventStore.Journal
