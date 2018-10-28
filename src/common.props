@@ -1,0 +1,10 @@
+<Project>
+    <PropertyGroup>
+        <Copyright>Copyright © 2018 Akka.NET Contrib Team</Copyright>
+        <VersionPrefix>1.3.0</VersionPrefix>
+        <Authors>Akka.NET Contrib Team</Authors>
+        <PackageIconUrl>http://getakka.net/images/akkalogo.png</PackageIconUrl>
+        <PackageProjectUrl>https://github.com/akkadotnet/akka.net</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/akkadotnet/akka.net/blob/master/LICENSE</PackageLicenseUrl>
+    </PropertyGroup>
+</Project>
