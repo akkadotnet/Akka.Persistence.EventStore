@@ -1,8 +1,6 @@
 ﻿using Akka.Actor;
 using Akka.Configuration;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Akka.Persistence.EventStore
 {
@@ -29,12 +27,19 @@ namespace Akka.Persistence.EventStore
             // Read config
             var journalConfig = system.Settings.Config.GetConfig("akka.persistence.journal.eventstore");
             JournalSettings = new EventStoreJournalSettings(journalConfig);
+            var snapshotConfig = system.Settings.Config.GetConfig("akka.persistence.snapshot-store.eventstore");
+            SnapshotStoreSettings = new EventStoreSnapshotSettings(snapshotConfig);
         }
 
         /// <summary>
         /// The settings for the EventStore journal.
         /// </summary>
         public EventStoreJournalSettings JournalSettings { get; }
+        
+        /// <summary>
+        /// The settings for the EventStore snapshot store.
+        /// </summary>
+        public EventStoreSnapshotSettings SnapshotStoreSettings { get; }
 
     }
 }

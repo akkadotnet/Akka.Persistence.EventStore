@@ -1,20 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+	<Import Project="..\common.props" />
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
+		<TargetFrameworks>net45;netstandard1.6</TargetFrameworks>
 		<LangVersion>7.1</LangVersion>
 	</PropertyGroup>
 	<PropertyGroup>
-		<AssemblyTitle>Akka.Persistence.Redis</AssemblyTitle>
+		<AssemblyTitle>Akka.Persistence.EventStore</AssemblyTitle>
 		<Description>Akka.NET Persistence journal store backed by EventStore.</Description>
-		<Copyright>Copyright © 2018 Akka.NET Contrib Team</Copyright>
-		<VersionPrefix>1.0.0</VersionPrefix>
-		<Authors>Akka.NET Contrib Team</Authors>
 		<PackageTags>akka;actors;actor model;Akka;concurrency;persistence;eventsource;eventstore</PackageTags>
-		<PackageIconUrl>http://getakka.net/images/AkkaNetLogo.Normal.png</PackageIconUrl>
-		<PackageProjectUrl>https://github.com/AkkaNetContrib/Akka.Persistence.EventStore</PackageProjectUrl>
-		<PackageLicenseUrl>https://github.com/AkkaNetContrib/Akka.Persistence.EventStore/blob/dev/LICENSE</PackageLicenseUrl>
 		<GenerateDocumentationFile>false</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<NetStandardImplicitPackageVersion Condition=" '$(TargetFramework)' == 'netstandard1.6' ">1.6.1</NetStandardImplicitPackageVersion>
 	</PropertyGroup>
 
 
@@ -22,16 +18,29 @@
 		<EmbeddedResource Include="reference.conf" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Akka.Persistence" Version="1.3.6" />
-		<PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
+		<PackageReference Include="Akka" Version="1.3.*" />
+		<PackageReference Include="Akka.Persistence" Version="1.3.*" />
+		<PackageReference Include="Newtonsoft.Json" Version="11.0.*" />
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-		<PackageReference Include="EventStore.Client" Version="4.1.1" />
+		<PackageReference Include="EventStore.Client" Version="4.0.0-4.1.*" />
 	</ItemGroup>
 
-	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-		<PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.1.0.23" />
+	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.6' ">
+		<PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.0.0-4.1.*" />
 	</ItemGroup>
+
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
+		<DefineConstants>$(DefineConstants);SERIALIZATION</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.6' ">
+		<DefineConstants>$(DefineConstants);CORECLR</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+		<DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+	</PropertyGroup>
 
 </Project>
