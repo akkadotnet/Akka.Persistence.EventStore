@@ -10,7 +10,6 @@
 		<PackageTags>akka;actors;actor model;Akka;concurrency;persistence;eventsource;eventstore</PackageTags>
 		<GenerateDocumentationFile>false</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<NetStandardImplicitPackageVersion Condition=" '$(TargetFramework)' == 'netstandard1.6' ">1.6.1</NetStandardImplicitPackageVersion>
 	</PropertyGroup>
 
 
@@ -18,8 +17,8 @@
 		<EmbeddedResource Include="reference.conf" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Akka" Version="1.3.*" />
-		<PackageReference Include="Akka.Persistence" Version="1.3.*" />
+		<PackageReference Include="Akka" Version="$(AkkaVersion)" />
+		<PackageReference Include="Akka.Persistence" Version="$(AkkaVersion)" />
 		<PackageReference Include="Newtonsoft.Json" Version="11.0.*" />
 	</ItemGroup>
 
