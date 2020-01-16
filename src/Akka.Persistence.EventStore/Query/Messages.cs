@@ -96,9 +96,9 @@ namespace Akka.Persistence.EventStore.Query
     public sealed class ReplayTaggedMessages : IJournalRequest
     {
         /// <summary>
-        /// Include all events from given offset. Must be greater than zero.
+        /// Include all events from after this offset. Must be greater than zero, or null for beginning of stream
         /// </summary>
-        public readonly long FromOffset;
+        public readonly long? FromOffset;
         /// <summary>
         /// Include all events until given offset. Must be greater than zero and <see cref="FromOffset"/>.
         /// </summary>
@@ -119,7 +119,7 @@ namespace Akka.Persistence.EventStore.Query
         /// <summary>
         /// Initializes a new instance of the <see cref="ReplayTaggedMessages"/> class.
         /// </summary>
-        /// <param name="fromOffset">TBD</param>
+        /// <param name="fromOffset">Zero-based exclusive offset, with null for beginning of stream</param>
         /// <param name="toOffset">TBD</param>
         /// <param name="max">TBD</param>
         /// <param name="tag">TBD</param>
@@ -135,7 +135,7 @@ namespace Akka.Persistence.EventStore.Query
         /// <exception cref="ArgumentNullException">
         /// This exception is thrown when the specified <paramref name="tag"/> is null or empty.
         /// </exception>
-        public ReplayTaggedMessages(long fromOffset, long toOffset, long max, string tag, IActorRef replyTo)
+        public ReplayTaggedMessages(long? fromOffset, long toOffset, long max, string tag, IActorRef replyTo)
         {
             if (fromOffset < 0) throw new ArgumentException("From offset may not be a negative number", nameof(fromOffset));
             if (toOffset <= 0) throw new ArgumentException("To offset must be a positive number", nameof(toOffset));

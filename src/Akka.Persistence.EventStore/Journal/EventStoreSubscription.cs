@@ -22,6 +22,14 @@ namespace Akka.Persistence.EventStore.Journal
             _context = context;
         }
 
+        /// <summary>
+        /// Subscribe
+        /// </summary>
+        /// <param name="subscriber"></param>
+        /// <param name="stream"></param>
+        /// <param name="from">Zero-based exclusive offset, with null specifying beginning of stream</param>
+        /// <param name="max"></param>
+        /// <param name="resolved"></param>
         public void Subscribe(IActorRef subscriber, string stream, long? from, int max,
             Func<ResolvedEvent, object> resolved)
         {
@@ -34,15 +42,13 @@ namespace Akka.Persistence.EventStore.Journal
 
             try
             {
-// need to have this since ES Catchup Subscription needs null for from when user wants to
-                // read from begging of the stream
-                long? nullable = null;
-
                 var self = _context.Self;
 
+                // ES SubscribeToStreamFrom uses zero-based exclusive offset (lastCheckPoint)
+                // Use null to specify from beginning of stream.
                 var subscription = _conn.SubscribeToStreamFrom(
                     stream,
-                    from.HasValue && from.Value == 0 ? nullable : from,
+                    from,
                     new CatchUpSubscriptionSettings(max * 2, 500, false, true),
                     (sub, @event) =>
                     {

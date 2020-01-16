@@ -187,19 +187,9 @@ namespace Akka.Persistence.EventStore.Query
             switch (offset)
             {
                 case Sequence seq:
-                    var props = EventsByTagPublisher.Props(
-                        tag,
-                        true,
-                        seq.Value,
-                        long.MaxValue,
-                        _maxBufferSize,
-                        _writeJournalPluginId
-                    );
-                    return Source.ActorPublisher<EventEnvelope>(props)
-                                 .MapMaterializedValue(_ => NotUsed.Instance)
-                                 .Named($"EventsByTag-{tag}");
+                    return GetCurrentEventsByTag(tag, seq.Value, true);
                 case NoOffset _:
-                    return EventsByTag(tag, new Sequence(StreamPosition.Start));
+                    return GetCurrentEventsByTag(tag, null, true);
                 default:
                     throw new ArgumentException($"SqlReadJournal does not support {offset.GetType().Name} offsets");
             }
@@ -210,28 +200,34 @@ namespace Akka.Persistence.EventStore.Query
         /// is completed immediately when it reaches the end of the "result set". Events that are
         /// stored after the query is completed are not included in the event stream.
         /// </summary>
+        /// <param name="offset">Zero-based Akka index</param>
         public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset = null)
         {
-            offset = offset ?? new Sequence(StreamPosition.Start);
+            offset = offset ?? Offset.NoOffset();
             switch (offset)
             {
                 case Sequence seq:
-                    var props = EventsByTagPublisher.Props(
-                        tag, 
-                        false, 
-                        seq.Value,
-                        long.MaxValue, 
-                        _maxBufferSize, 
-                        _writeJournalPluginId
-                    );
-                    return Source.ActorPublisher<EventEnvelope>(props)
-                                 .MapMaterializedValue(_ => NotUsed.Instance)
-                                 .Named($"CurrentEventsByTag-{tag}");
+                    return GetCurrentEventsByTag(tag, seq.Value, false);
                 case NoOffset _:
-                    return CurrentEventsByTag(tag, new Sequence(StreamPosition.Start));
+                    return GetCurrentEventsByTag(tag, null, false);
                 default:
                     throw new ArgumentException($"SqlReadJournal does not support {offset.GetType().Name} offsets");
             }
+        }
+
+        private Source<EventEnvelope, NotUsed> GetCurrentEventsByTag(string tag, long? offset, bool isLive)
+        {
+            var props = EventsByTagPublisher.Props(
+                                    tag,
+                                    isLive,
+                                    offset,
+                                    long.MaxValue,
+                                    _maxBufferSize,
+                                    _writeJournalPluginId
+                                );
+            return Source.ActorPublisher<EventEnvelope>(props)
+                         .MapMaterializedValue(_ => NotUsed.Instance)
+                         .Named($"CurrentEventsByTag-{tag}");
         }
     }
 }

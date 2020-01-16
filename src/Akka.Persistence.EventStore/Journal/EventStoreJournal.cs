@@ -299,7 +299,8 @@ namespace Akka.Persistence.EventStore.Journal
 
         private void StartPersistenceIdSubscription(SubscribePersistenceId sub)
         {
-            long? offset = sub.FromSequenceNr == 0 ? (long?) null : sub.FromSequenceNr;
+            // Sequence numbers are Akka issued, 1-based, convert to 0-based exclusive EventStore offsets
+            long? offset = sub.FromSequenceNr == 0 ? (long?) null : (sub.FromSequenceNr - 1);
             _subscriptions.Subscribe(Sender, sub.PersistenceId, offset, sub.Max, e =>
             {
                 var p = _eventAdapter.Adapt(e);
@@ -315,12 +316,10 @@ namespace Akka.Persistence.EventStore.Journal
 
         private void StartTaggedSubscription(ReplayTaggedMessages msg)
         {
-            long? nullable = msg.FromOffset == 0 ? (long?) null : msg.FromOffset;
-
             _subscriptions.Subscribe(
                 Sender,
                 msg.Tag,
-                nullable,
+                msg.FromOffset,
                 (int) msg.Max,
                 @event => new ReplayedTaggedMessage(
                     _eventAdapter.Adapt(@event),
