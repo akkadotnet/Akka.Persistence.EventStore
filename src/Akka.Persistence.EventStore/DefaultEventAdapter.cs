@@ -1,5 +1,6 @@
 ﻿using Akka.Actor;
 using Akka.Persistence.Journal;
+using Akka.Serialization;
 using EventStore.ClientAPI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -13,6 +14,7 @@ namespace Akka.Persistence.EventStore
     {
         private readonly Akka.Serialization.Serialization _serialization;
         private readonly JsonSerializerSettings _metadataSettings;
+        private readonly NewtonSoftJsonSerializer _serializer;
 
         public DefaultEventAdapter(Akka.Serialization.Serialization serialization)
         {
@@ -21,6 +23,7 @@ namespace Akka.Persistence.EventStore
             {
                 DateParseHandling = DateParseHandling.None
             };
+            _serializer = new NewtonSoftJsonSerializer(_serialization.System);
         }
 
         public EventData Adapt(IPersistentRepresentation persistentMessage)
@@ -66,8 +69,7 @@ namespace Akka.Persistence.EventStore
             var clrEventType = string.Concat(eventType.FullName, ", ", eventType.GetTypeInfo().Assembly.GetName().Name);
             metadata[Constants.EventMetadata.ClrEventType] = clrEventType;
 
-            var sz = new Akka.Serialization.NewtonSoftJsonSerializer(_serialization.System);
-            return sz.ToBinary(payload);
+            return _serializer.ToBinary(payload);
         }
 
         public IPersistentRepresentation Adapt(ResolvedEvent resolvedEvent)
@@ -122,9 +124,7 @@ namespace Akka.Persistence.EventStore
         {
             var eventTypeString = (string)metadata.SelectToken(Constants.EventMetadata.ClrEventType);
             var eventType = Type.GetType(eventTypeString, true, true);
-
-            var sz = new Akka.Serialization.NewtonSoftJsonSerializer(_serialization.System);
-            return sz.FromBinary(bytes, eventType);
+            return _serializer.FromBinary(bytes, eventType);
         }
     }
 }
