@@ -16,12 +16,12 @@ namespace Akka.Persistence.EventStore.Query.Publishers
         private readonly string _tag;
         private readonly long _toOffset;
         private readonly int _maxBufferSize;
-        private long _currentOffset;
+        private long? _currentOffset;
         private long _requestedCount = -1L;
         private bool _isCaughtUp;
 
 
-        public EventsByTagPublisher(string tag, bool isLive, long fromOffset, long toOffset, int maxBufferSize,
+        public EventsByTagPublisher(string tag, bool isLive, long? fromOffset, long toOffset, int maxBufferSize,
             string writeJournalPluginId)
         {
             _tag = tag;
@@ -34,7 +34,14 @@ namespace Akka.Persistence.EventStore.Query.Publishers
             _journalRef = Persistence.Instance.Apply(Context.System).JournalFor(writeJournalPluginId);
         }
 
-        public static Props Props(string tag, bool isLive, long fromOffset, long toOffset, int maxBufferSize,
+        /// <param name="tag"></param>
+        /// <param name="isLive"></param>
+        /// <param name="fromOffset">0-based Akka offset, inclusive</param>
+        /// <param name="toOffset"></param>
+        /// <param name="maxBufferSize"></param>
+        /// <param name="writeJournalPluginId"></param>
+        /// <returns></returns>
+        public static Props Props(string tag, bool isLive, long? fromOffset, long toOffset, int maxBufferSize,
             string writeJournalPluginId)
         {
             return Actor.Props.Create(() =>
