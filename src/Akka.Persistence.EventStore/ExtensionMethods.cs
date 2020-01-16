@@ -2,7 +2,7 @@
 
 namespace Akka.Persistence.EventStore
 {
-    internal static class ExtensionMethods
+    public static class ExtensionMethods
     {
         public static string ToEventCase(this string str)
         {

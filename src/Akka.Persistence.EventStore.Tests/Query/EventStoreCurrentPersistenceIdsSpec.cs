@@ -28,7 +28,7 @@ namespace Akka.Persistence.EventStore.Tests.Query
         }
 
         public EventStoreCurrentPersistenceIdsSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) : 
-                base(Config(databaseFixture), nameof(EventStoreCurrentPersistenceIdsSpec), output)
+                base(Config(databaseFixture.Restart()), nameof(EventStoreCurrentPersistenceIdsSpec), output)
         {
             ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
         }

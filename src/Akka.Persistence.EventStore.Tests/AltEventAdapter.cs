@@ -4,6 +4,11 @@ namespace Akka.Persistence.EventStore.Tests
 {
     public class AltEventAdapter : DefaultEventAdapter
     {
+        public AltEventAdapter(Akka.Serialization.Serialization serialization) 
+            : base(serialization)
+        {
+        }
+
         protected override byte[] ToBytes(object @event, JObject metadata, out string type, out bool isJson)
         {
             metadata["additionalProp"] = true;

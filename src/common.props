@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <Copyright>Copyright © 2018 Akka.NET Contrib Team</Copyright>
-    <VersionPrefix>1.3.0</VersionPrefix>
+    <VersionPrefix>1.4.0</VersionPrefix>
     <Authors>Akka.NET Contrib Team</Authors>
     <PackageIconUrl>http://getakka.net/images/akkalogo.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/akkadotnet/akka.net</PackageProjectUrl>
@@ -9,7 +9,7 @@
     <PackageReleaseNotes>Current version</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup>
-    <AkkaVersion>1.3.14</AkkaVersion>
+    <AkkaVersion>1.4.0-beta*</AkkaVersion>
     <NBenchVersion>1.2.2</NBenchVersion>
     <XunitVersion>2.4.1</XunitVersion>
     <TestSdkVersion>15.9.0</TestSdkVersion>

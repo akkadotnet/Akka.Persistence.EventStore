@@ -1,16 +1,14 @@
 ﻿using Akka.Actor;
+using Akka.Event;
+using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.Journal;
+using Akka.Util.Internal;
 using EventStore.ClientAPI;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
-using Akka.Event;
-using Akka.IO;
-using Akka.Persistence.EventStore.Common;
-using Akka.Persistence.EventStore.Query;
-using Akka.Util.Internal;
 
 namespace Akka.Persistence.EventStore.Journal
 {
@@ -24,11 +22,14 @@ namespace Akka.Persistence.EventStore.Journal
         private readonly EventStoreJournalSettings _settings;
         private readonly EventStoreSubscriptions _subscriptions;
         private readonly ILoggingAdapter _log;
+        private readonly Akka.Serialization.Serialization _serialization;
 
         public EventStoreJournal()
         {
             _settings = EventStorePersistence.Get(Context.System).JournalSettings;
             _log = Context.GetLogger();
+            _serialization = Context.System.Serialization;
+
             var connectionString = _settings.ConnectionString;
             var connectionName = _settings.ConnectionName;
             _connRead = EventStoreConnection
@@ -82,9 +83,15 @@ namespace Akka.Persistence.EventStore.Journal
 
         private IEventAdapter BuildDefaultJournalAdapter()
         {
+            Func<DefaultEventAdapter> getDefaultAdapter = () => new DefaultEventAdapter(_serialization);
+
             if (_settings.Adapter.ToLowerInvariant() == "default")
             {
-                return new DefaultEventAdapter();
+                return getDefaultAdapter();
+            }
+            else if (_settings.Adapter.ToLowerInvariant() == "legacy")
+            {
+                return new LegacyEventAdapter(_serialization);
             }
 
             try
@@ -94,15 +101,20 @@ namespace Akka.Persistence.EventStore.Journal
                 {
                     _log.Error(
                         $"Unable to find type [{_settings.Adapter}] Adapter for EventStoreJournal. Is the assembly referenced properly? Falling back to default");
-                    return new DefaultEventAdapter();
+                    return getDefaultAdapter();
                 }
 
-                var journalAdapter = Activator.CreateInstance(journalAdapterType) as IEventAdapter;
+                var adapterConstructor = journalAdapterType.GetConstructor(new[] { typeof(Akka.Serialization.Serialization) });
+                
+                IEventAdapter journalAdapter = (adapterConstructor != null 
+                    ? adapterConstructor.Invoke(new object[] { _serialization }) 
+                    : Activator.CreateInstance(journalAdapterType)) as IEventAdapter;
+
                 if (journalAdapter == null)
                 {
                     _log.Error(
-                        $"Unable to create instance of type [{journalAdapterType.AssemblyQualifiedName}] Adapter for EventStoreJournal. Do you have an empty constructor? Falling back to default.");
-                    return new DefaultEventAdapter();
+                        $"Unable to create instance of type [{journalAdapterType.AssemblyQualifiedName}] Adapter for EventStoreJournal. Do you have an empty constructor, or one that takes in Akka.Serialization.Serialization? Falling back to default.");
+                    return getDefaultAdapter();
                 }
 
                 return journalAdapter;
@@ -110,7 +122,7 @@ namespace Akka.Persistence.EventStore.Journal
             catch (Exception e)
             {
                 _log.Error(e, "Error loading Adapter for EventStoreJournal. Falling back to default");
-                return new DefaultEventAdapter();
+                return getDefaultAdapter();
             }
         }
 
@@ -193,12 +205,7 @@ namespace Akka.Persistence.EventStore.Journal
 
                     foreach (var @event in slice.Events)
                     {
-                        var representation = _eventAdapter.Adapt(@event, s =>
-                        {
-                            //TODO: Is this correct?
-                            var selection = context.ActorSelection(s);
-                            return selection.Anchor;
-                        });
+                        var representation = _eventAdapter.Adapt(@event);
 
                         recoveryCallback(representation);
                         count++;
