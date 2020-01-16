@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\common.props" />
 	<PropertyGroup>
-		<TargetFrameworks>net45;netstandard1.6</TargetFrameworks>
+		<TargetFrameworks>net452;netstandard2.0</TargetFrameworks>
 		<LangVersion>7.1</LangVersion>
 	</PropertyGroup>
 	<PropertyGroup>
@@ -19,22 +19,21 @@
 	<ItemGroup>
 		<PackageReference Include="Akka" Version="$(AkkaVersion)" />
 		<PackageReference Include="Akka.Persistence" Version="$(AkkaVersion)" />
-		<PackageReference Include="Newtonsoft.Json" Version="11.0.*" />
 	</ItemGroup>
 
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-		<PackageReference Include="EventStore.Client" Version="4.0.0-4.1.*" />
+	<ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+		<PackageReference Include="EventStore.Client" Version="5.*" />
 	</ItemGroup>
 
-	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.6' ">
-		<PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.0.0-4.1.*" />
+	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+		<PackageReference Include="EventStore.Client" Version="5.*" />
 	</ItemGroup>
 
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'net452' ">
 		<DefineConstants>$(DefineConstants);SERIALIZATION</DefineConstants>
 	</PropertyGroup>
 
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.6' ">
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
 		<DefineConstants>$(DefineConstants);CORECLR</DefineConstants>
 	</PropertyGroup>
 

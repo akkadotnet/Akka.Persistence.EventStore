@@ -1,20 +1,18 @@
 ﻿using Docker.DotNet;
 using Docker.DotNet.Models;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using Akka.Util.Internal;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
-using Xunit;
 using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests
 {
@@ -30,6 +28,8 @@ namespace Akka.Persistence.EventStore.Tests
         private readonly string _eventStoreContainerName = $"es-{Guid.NewGuid():N}";
         private static readonly Random Random;
         const string EventStoreImage = "eventstore/eventstore";
+        private int _restartCount = 0;
+        private int _httpPort;
 
         static DatabaseFixture()
         {
@@ -75,7 +75,7 @@ namespace Akka.Persistence.EventStore.Tests
                 }
                 //var containers = await this._client.Containers.ListContainersAsync(new ContainersListParameters { All = true });
 
-                int httpPort = Random.Next(2100, 2399);
+                _httpPort = Random.Next(2100, 2399);
                 int tcpPort = Random.Next(1100, 1399);
                 await _client.Containers.CreateContainerAsync(
                     new CreateContainerParameters
@@ -86,7 +86,8 @@ namespace Akka.Persistence.EventStore.Tests
                         Env = new List<string>
                         {
                             "EVENTSTORE_RUN_PROJECTIONS=All",
-                            "EVENTSTORE_START_STANDARD_PROJECTIONS=True"
+                            "EVENTSTORE_START_STANDARD_PROJECTIONS=True",
+                            "EVENTSTORE_MEM_DB=1"
                         },
                         HostConfig = new HostConfig
                         {
@@ -98,7 +99,7 @@ namespace Akka.Persistence.EventStore.Tests
                                     {
                                         new PortBinding
                                         {
-                                            HostPort = $"{httpPort}"
+                                            HostPort = $"{_httpPort}"
                                         }
                                     }
                                 },
@@ -120,20 +121,29 @@ namespace Akka.Persistence.EventStore.Tests
                     new ContainerStartParameters { });
                 ConnectionString = $"ConnectTo=tcp://admin:changeit@localhost:{tcpPort}; HeartBeatTimeout=500";
                 await Task.Delay(5000);
-                InitializeProjections(httpPort);
+                await InitializeProjections(_httpPort);
             }
             else
             {
                 ConnectionString = $"ConnectTo=tcp://admin:changeit@localhost:1113; HeartBeatTimeout=500";
-                InitializeProjections(2113);
+                await InitializeProjections(2113);
             }
+        }
+
+        public DatabaseFixture Restart()
+        {
+            if (_restartCount++ == 0) return this; // Don't restart the first time
+            _client.Containers.RestartContainerAsync(_eventStoreContainerName, new ContainerRestartParameters { WaitBeforeKillSeconds = 0 }).Wait();
+            Task.Delay(5000).Wait();
+            InitializeProjections(_httpPort).Wait();
+            return this;
         }
 
         public async Task DisposeAsync()
         {
             if (_client != null)
             {
-                await _client.Containers.StopContainerAsync(_eventStoreContainerName, new ContainerStopParameters { });
+                await _client.Containers.StopContainerAsync(_eventStoreContainerName, new ContainerStopParameters { WaitBeforeKillSeconds = 0 });
                 await _client.Containers.RemoveContainerAsync(_eventStoreContainerName,
                     new ContainerRemoveParameters {Force = true});
                 _client.Dispose();
@@ -149,18 +159,18 @@ namespace Akka.Persistence.EventStore.Tests
             }
         }
 
-        private void InitializeProjections(int httpPort)
+        private Task InitializeProjections(int httpPort)
         {
        
             var logger = new NoLogger();
             var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), httpPort);
             var pm = new ProjectionsManager(logger, endpoint, TimeSpan.FromSeconds(2));
-            
-            Tags.ForEach(async tag =>
+
+            return Task.WhenAll(Tags.Select(async tag =>
             {
                 var source = ReadTaggedProjectionSource(tag);
                 await pm.CreateContinuousAsync(tag, source, new UserCredentials("admin", "changeit"));
-            });
+            }));
             
         }
 

@@ -47,7 +47,8 @@ This will run the journal with its default settings. The default settings can be
 ### Adapter
 
 Akka Persistence EventStore Plugin supports changing how data is stored and retrieved. 
-By default, it will serialize the data using ```Newtonsoft.Json```, and populate the Metadata with the following information:
+By default, it will serialize the data using ```Akka.Serialization.NewtonSoftJsonSerializer```, and populate the Metadata with the 
+following information:
 ```json
 {
   "persistenceId": "p-14",
@@ -74,39 +75,42 @@ public class AltAdapter : DefaultAdapter
     {
         var bytes = base.ToBytes(@event, metadata, out type, out isJson);
         
-        //Add some additional metadata:
+        // Add some additional metadata, such as the CLR type name to help with deserialization
         metadata["additionalProp"] = true;
 
-        //Do something additional with bytes.
+        // Do something additional with bytes, or do something to produce bytes
         return bytes;
 
     }
     protected override object ToEvent(byte[] bytes, JObject metadata)
     {
-        //Use the metadata to determine if you need to do something additional to the data
-        //Do something additional with bytes before handing it off to be deserialized.
+        // Use the metadata to determine how to convert it back to an event, such as using the CLR type captured 
+        // in ToBytes.
+        // Do something additional with bytes before handing it off to persistent actors.
         return base.ToEvent(bytes, metadata);
     }         
 }
 ```
 
-You also have the option of creating a new implemenation of ```Akka.Persistence.EventStore.IAdapter```
+You also have the option of creating a new implemenation of ```Akka.Persistence.EventStore.IAdapter```.
+Everything is DIY in this case, including correct handling of internal Akka types if they appear in 
+events. Make use of the supplied ```Akka.Serialization.Serialization``` to help with this.
 
 ```C#
 public class CustomAdapter : IAdapter
 {
-    public DefaultAdapter()
+    public DefaultAdapter(Akka.Serialization.Serialization serialization)
     {
     }
 
     public EventData Adapt(IPersistentRepresentation persistentMessage)
     {
-        //Implement
+        // Implement
     }
 
-    public IPersistentRepresentation Adapt(ResolvedEvent resolvedEvent, Func<string, IActorRef> actorSelection = null)
+    public IPersistentRepresentation Adapt(ResolvedEvent resolvedEvent)
     {
-        //Implement
+        // Implement
     }
 }
 ```
@@ -126,6 +130,25 @@ akka.persistence {
     }
 }
 ```
+
+### Breaking Changes in 1.4
+
+1. The `DefaultEventAdapter` does not support internal Akka types (e.g. actor refs) and thus specs are 
+failing. This has been updated to use `Akka.Serialization.NewtonSoftJsonSerializer`. If this does not 
+affect you, or you have projections that depend on old configuration, use the following keys:
+
+```
+akka.persistence.journal.eventstore.adapter = legacy
+akka.persistence.snapshot-store.eventstore.adapter = legacy
+```
+
+2. Adapter API has been changed to more correctly serialize the Sender actor ref.
+
+Derived event adapter classes requires a minor interface change, namely removed
+`Func<string, IActorRef>` argument. The Akka built-in Persistent serialization mechanism 
+uses `System.Provider.ResolveActorRef` and `Akka.Serialization.Serialization.SerializedActorPath` 
+to accomplish this. Legacy behavior is preserved by using `System.ActorSelection` rather 
+than the journal's actor context.
 
 # Akka.Persistence.EventStore.Query
 
@@ -178,3 +201,4 @@ To use standard queries please refer to documentation about [Persistence Query](
 ## Maintainer
 - [ryandanthony](https://github.com/ryandanthony)
 - [mjaric](https://github.com/mjaric)
+- [ptjhuang](https://github.com/ptjhuang)

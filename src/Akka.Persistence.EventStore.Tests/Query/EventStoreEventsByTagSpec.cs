@@ -29,7 +29,7 @@ namespace Akka.Persistence.EventStore.Tests.Query
         }
 
         public EventStoreEventsByTagSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) : 
-                base(Config(databaseFixture), nameof(EventStoreEventsByTagSpec), output)
+                base(Config(databaseFixture.Restart()), nameof(EventStoreEventsByTagSpec), output)
         {
             ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
         }

@@ -23,12 +23,13 @@ namespace Akka.Persistence.EventStore.Snapshot
         private readonly EventStoreSnapshotSettings _settings;
 
         private readonly ILoggingAdapter _log;
-
+        private readonly Akka.Serialization.Serialization _serialization;
 
         public EventStoreSnapshotStore()
         {
             _settings = EventStorePersistence.Get(Context.System).SnapshotStoreSettings;
             _log = Context.GetLogger();
+            _serialization = Context.System.Serialization;
         }
 
         protected override void PreStart()
@@ -157,9 +158,15 @@ namespace Akka.Persistence.EventStore.Snapshot
 
         private ISnapshotAdapter BuildDefaultSnapshotAdapter()
         {
+            Func<DefaultSnapshotEventAdapter> getDefaultAdapter = () => new DefaultSnapshotEventAdapter(_serialization);
+
             if (_settings.Adapter.ToLowerInvariant() == "default")
             {
-                return new DefaultSnapshotEventAdapter();
+                return getDefaultAdapter();
+            }
+            else if (_settings.Adapter.ToLowerInvariant() == "legacy")
+            {
+                return new LegacySnapshotEventAdapter();
             }
 
             try
@@ -169,15 +176,19 @@ namespace Akka.Persistence.EventStore.Snapshot
                 {
                     _log.Error(
                         $"Unable to find type [{_settings.Adapter}] Adapter for EventStoreJournal. Is the assembly referenced properly? Falling back to default");
-                    return new DefaultSnapshotEventAdapter();
+                    return getDefaultAdapter();
                 }
 
-                var journalAdapter = Activator.CreateInstance(journalAdapterType) as ISnapshotAdapter;
+                var adapterConstructor = journalAdapterType.GetConstructor(new[] { typeof(Akka.Serialization.Serialization) });
+
+                ISnapshotAdapter journalAdapter = (adapterConstructor != null
+                    ? adapterConstructor.Invoke(new object[] { _serialization })
+                    : Activator.CreateInstance(journalAdapterType)) as ISnapshotAdapter;
                 if (journalAdapter == null)
                 {
                     _log.Error(
                         $"Unable to create instance of type [{journalAdapterType.AssemblyQualifiedName}] Adapter for EventStoreJournal. Do you have an empty constructor? Falling back to default.");
-                    return new DefaultSnapshotEventAdapter();
+                    return getDefaultAdapter();
                 }
 
                 return journalAdapter;
@@ -185,7 +196,7 @@ namespace Akka.Persistence.EventStore.Snapshot
             catch (Exception e)
             {
                 _log.Error(e, "Error loading Adapter for EventStoreJournal. Falling back to default");
-                return new DefaultSnapshotEventAdapter();
+                return getDefaultAdapter();
             }
         }
 

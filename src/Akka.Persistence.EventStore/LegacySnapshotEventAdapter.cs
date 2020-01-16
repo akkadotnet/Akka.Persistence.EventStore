@@ -2,25 +2,22 @@ using System;
 using System.Reflection;
 using System.Text;
 using Akka.Actor;
-using Akka.Serialization;
 using EventStore.ClientAPI;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Akka.Persistence.EventStore
 {
-    public class DefaultSnapshotEventAdapter : ISnapshotAdapter
+    public class LegacySnapshotEventAdapter : ISnapshotAdapter
     {
         private readonly JsonSerializerSettings _settings;
-        private readonly NewtonSoftJsonSerializer _serializer;
 
-        public DefaultSnapshotEventAdapter(Akka.Serialization.Serialization serialization)
+        public LegacySnapshotEventAdapter()
         {
             _settings = new JsonSerializerSettings
             {
                 DateTimeZoneHandling = DateTimeZoneHandling.Utc
             };
-            _serializer = new NewtonSoftJsonSerializer(serialization.System);
         }
 
         public EventData Adapt(SnapshotMetadata snapshotMetadata, object snapshot)
@@ -69,14 +66,16 @@ namespace Akka.Persistence.EventStore
             var clrEventType = string.Concat(eventType.FullName, ", ", eventType.GetTypeInfo().Assembly.GetName().Name);
             metadata[Constants.EventMetadata.ClrEventType] = clrEventType;
 
-            return _serializer.ToBinary(@event);
+            var dataString = JsonConvert.SerializeObject(@event);
+            return Encoding.UTF8.GetBytes(dataString);
         }
         
         protected virtual object ToEvent(byte[] bytes, JObject metadata)
         {
-            var eventTypeString = (string)metadata.SelectToken(Constants.EventMetadata.ClrEventType);
+            var dataString = Encoding.UTF8.GetString(bytes);
+            var eventTypeString = (string) metadata.SelectToken(Constants.EventMetadata.ClrEventType);
             var eventType = Type.GetType(eventTypeString, true, true);
-            return _serializer.FromBinary(bytes, eventType);
+            return JsonConvert.DeserializeObject(dataString, eventType);
         }
     }
 }
