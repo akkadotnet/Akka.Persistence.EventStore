@@ -26,14 +26,6 @@
     <PackageReference Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
     <ProjectReference Include="..\Akka.Persistence.EventStore\Akka.Persistence.EventStore.csproj" />
   </ItemGroup>
-  
-  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
-    <PackageReference Include="EventStore.Client" Version="5.*" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="EventStore.Client" Version="5.*" />
-  </ItemGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <DefineConstants>$(DefineConstants);SERIALIZATION</DefineConstants>

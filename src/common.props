@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <Copyright>Copyright © 2018 Akka.NET Contrib Team</Copyright>
-    <VersionPrefix>1.4.0</VersionPrefix>
+    <VersionPrefix>1.4.0-beta3</VersionPrefix>
     <Authors>Akka.NET Contrib Team</Authors>
     <PackageIconUrl>http://getakka.net/images/akkalogo.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/akkadotnet/akka.net</PackageProjectUrl>
