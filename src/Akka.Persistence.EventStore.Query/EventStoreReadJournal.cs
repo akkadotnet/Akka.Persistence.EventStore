@@ -6,6 +6,7 @@ using Akka.Persistence.Journal;
 using Akka.Persistence.Query;
 using Akka.Streams.Dsl;
 using EventStore.ClientAPI;
+using Hocon;
 
 namespace Akka.Persistence.EventStore.Query
 {

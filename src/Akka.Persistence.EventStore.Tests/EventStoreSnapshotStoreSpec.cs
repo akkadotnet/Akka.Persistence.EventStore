@@ -6,6 +6,7 @@ using Akka.Configuration;
 using Akka.Persistence.TCK;
 using Akka.TestKit;
 using Xunit;
+using Hocon;
 
 namespace Akka.Persistence.EventStore.Tests
 {

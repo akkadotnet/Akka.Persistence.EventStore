@@ -1,5 +1,6 @@
 ﻿using Akka.Configuration;
 using System;
+using Hocon;
 
 namespace Akka.Persistence.EventStore
 {

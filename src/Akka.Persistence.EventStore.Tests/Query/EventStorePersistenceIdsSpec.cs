@@ -4,6 +4,7 @@ using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.TCK.Query;
 using Xunit;
 using Xunit.Abstractions;
+using Hocon;
 
 namespace Akka.Persistence.EventStore.Tests.Query
 {

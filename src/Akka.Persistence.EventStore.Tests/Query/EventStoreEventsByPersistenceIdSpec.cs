@@ -10,6 +10,7 @@ using Akka.Streams.TestKit;
 using Akka.Util.Internal;
 using Xunit;
 using Xunit.Abstractions;
+using Hocon;
 
 namespace Akka.Persistence.EventStore.Tests.Query
 {
