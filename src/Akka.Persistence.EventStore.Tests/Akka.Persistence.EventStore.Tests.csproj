@@ -1,23 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\common.props" />
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
+
+    <LangVersion>latestmajor</LangVersion>
+
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.1" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
-    <PackageReference Include="xunit" Version="$(XunitVersion)" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitVersion)" />
-    <PackageReference Include="Akka.Persistence.TCK" Version="$(AkkaVersion)" />
-    <PackageReference Include="FluentAssertions" Version="4.19.4" />
-    <PackageReference Include="Docker.DotNet" Version="3.125.2" />
+    <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="23.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Akka.Persistence.TCK" Version="1.5.15" />
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Akka.Persistence.EventStore.Query\Akka.Persistence.EventStore.Query.csproj" />
     <ProjectReference Include="..\Akka.Persistence.EventStore\Akka.Persistence.EventStore.csproj" />
     
   </ItemGroup>
@@ -33,7 +39,6 @@
 
   <ItemGroup>
     <None Remove="Projections\taggedProjection.js" />
-    <EmbeddedResource Include="Projections\taggedProjection.js" />
   </ItemGroup>
 
 </Project>
