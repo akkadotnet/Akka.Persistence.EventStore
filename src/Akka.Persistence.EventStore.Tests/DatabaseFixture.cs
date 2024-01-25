@@ -100,10 +100,8 @@ public class DatabaseFixture : IAsyncLifetime
                     Env = new List<string>
                     {
                         "EVENTSTORE_RUN_PROJECTIONS=All",
-                        //"EVENTSTORE_START_STANDARD_PROJECTIONS=True",
                         "EVENTSTORE_MEM_DB=True",
-                        "EVENTSTORE_INSECURE=True",
-                        "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=True"
+                        "EVENTSTORE_INSECURE=True"
                     },
                     HostConfig = new HostConfig
                     {
