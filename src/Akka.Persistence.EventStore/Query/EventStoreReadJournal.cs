@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using Akka.Actor;
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Serialization;
 using Akka.Persistence.Journal;
 using Akka.Persistence.Query;
+using Akka.Streams;
 using Akka.Streams.Dsl;
 using EventStore.Client;
 
@@ -26,6 +28,7 @@ public class EventStoreReadJournal
     private readonly EventStoreDataSource _eventStoreDataSource;
     private readonly EventStoreReadJournalSettings _settings;
     private readonly EventStoreJournalSettings _writeSettings;
+    private readonly EventStorePersistentSubscriptionsClient _subscriptionsClient;
 
     public EventStoreReadJournal(ActorSystem system, Config config)
     {
@@ -34,14 +37,49 @@ public class EventStoreReadJournal
         _eventAdapters = Persistence.Instance.Apply(system).AdaptersFor(_settings.WritePlugin);
 
         _writeSettings = EventStorePersistence.Get(system).JournalSettings;
+
+        var serializer = _writeSettings.FindSerializer(system);
+        
+        var clientSettings = EventStoreClientSettings.Create(_writeSettings.ConnectionString);
         
         _eventStoreDataSource = new EventStoreDataSource(
-            new EventStoreClient(EventStoreClientSettings.Create(_writeSettings.ConnectionString)),
-            _writeSettings.FindSerializer(system));
+            new EventStoreClient(clientSettings),
+            serializer);
+
+        _subscriptionsClient = new EventStorePersistentSubscriptionsClient(clientSettings);
     }
 
     public static string Identifier => "akka.persistence.query.journal.eventstore";
 
+    public Source<PersistentSubscriptionMessage, ICancelable> PersistentSubscription(
+        string streamName,
+        string groupName,
+        int maxBufferSize = 500,
+        RestartSettings? restartWith = null)
+    {
+        ICancelable cancelable = new Cancelable();
+
+        if (restartWith != null)
+        {
+            return RestartSource
+                .OnFailuresWithBackoff(Create, restartWith)
+                .MapMaterializedValue(_ => cancelable);
+        }
+
+        return Create();
+        
+        Source<PersistentSubscriptionMessage, ICancelable> Create()
+        {
+            return Source.From(() => new EventStorePersistentSubscriptionEnumerable(
+                    streamName,
+                    groupName,
+                    _subscriptionsClient,
+                    maxBufferSize,
+                    cancelable.Token))
+                .MapMaterializedValue(_ => cancelable);
+        }
+    }
+    
     public Source<EventEnvelope, NotUsed> EventsByPersistenceId(
         string persistenceId,
         long fromSequenceNr,
@@ -130,4 +168,32 @@ public class EventStoreReadJournal
             .Events
             .Select(persistentRepresentation.WithPayload)
             .ToImmutableList();
+    
+    private class Cancelable : ICancelable
+    {
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
+        
+        public bool IsCancellationRequested => _cancellationTokenSource.IsCancellationRequested;
+        public CancellationToken Token => _cancellationTokenSource.Token;
+        
+        public void Cancel()
+        {
+            _cancellationTokenSource.Cancel();
+        }
+
+        public void CancelAfter(TimeSpan delay)
+        {
+            _cancellationTokenSource.CancelAfter(delay);
+        }
+
+        public void CancelAfter(int millisecondsDelay)
+        {
+            _cancellationTokenSource.CancelAfter(millisecondsDelay);
+        }
+
+        public void Cancel(bool throwOnFirstException)
+        {
+            _cancellationTokenSource.Cancel(throwOnFirstException);
+        }
+    }
 }

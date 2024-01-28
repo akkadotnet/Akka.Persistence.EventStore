@@ -8,7 +8,7 @@ using EventStore.Client;
 
 namespace Akka.Persistence.EventStore;
 
-public class EventStoreDataSource(EventStoreClient client, IJournalMessageSerializer serializer)
+public class EventStoreDataSource(EventStoreClient eventStoreClient, IJournalMessageSerializer serializer)
 {
     public Source<ReplayCompletion, NotUsed> Messages(
         string streamName,
@@ -26,7 +26,7 @@ public class EventStoreDataSource(EventStoreClient client, IJournalMessageSerial
             
             while (true)
             {
-                var readResult = client.ReadStreamAsync(
+                var readResult = eventStoreClient.ReadStreamAsync(
                     filter.Direction,
                     streamName,
                     startPosition,
