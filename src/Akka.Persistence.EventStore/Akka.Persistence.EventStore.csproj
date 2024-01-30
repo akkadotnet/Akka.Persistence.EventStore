@@ -21,10 +21,10 @@
 		<EmbeddedResource Include="reference.conf" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Akka" Version="1.5.15" />
-		<PackageReference Include="Akka.Persistence" Version="1.5.15" />
-		<PackageReference Include="Akka.Persistence.Query" Version="1.5.15" />
 		<PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="23.1.0" />
+		<PackageReference Include="Akka" Version="1.5.16" />
+		<PackageReference Include="Akka.Persistence" Version="1.5.16" />
+		<PackageReference Include="Akka.Persistence.Query" Version="1.5.16" />
 		<PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="23.1.0" />
 		<PackageReference Include="LanguageExt.Core" Version="4.4.7" />
 		<PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.1.0" />

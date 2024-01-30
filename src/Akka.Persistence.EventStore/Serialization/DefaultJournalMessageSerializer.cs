@@ -197,15 +197,15 @@ public class DefaultJournalMessageSerializer(Akka.Serialization.Serialization se
             Tags = tags;
             Sender = message.Sender;
         }
-        
-        public string PersistenceId { get; set; }
+
+        public string PersistenceId { get; set; } = null!;
         public DateTimeOffset OccurredOn { get; set; }
-        public string Manifest { get; set; }
+        public string Manifest { get; set; } = null!;
         public long SequenceNr { get; set; }
-        public string WriterGuid { get; set; }
-        public string JournalType { get; set; }
+        public string WriterGuid { get; set; } = null!;
+        public string JournalType { get; set; } = null!;
         public long? Timestamp { get; set; }
-        public IImmutableSet<string> Tags { get; set; }
+        public IImmutableSet<string> Tags { get; set; } = ImmutableHashSet<string>.Empty;
         public IActorRef? Sender { get; set; }
     }
     
@@ -235,11 +235,11 @@ public class DefaultJournalMessageSerializer(Akka.Serialization.Serialization se
             JournalType = Constants.JournalTypes.SnapshotJournal;
         }
         
-        public string PersistenceId { get; set; }
+        public string PersistenceId { get; set; } = null!;
         public DateTime OccurredOn { get; set; }
-        public string Manifest { get; set; }
+        public string Manifest { get; set; } = null!;
         public long SequenceNr { get; set; }
         public long Timestamp { get; set; }
-        public string JournalType { get; set; }
+        public string JournalType { get; set; } = null!;
     }
 }
