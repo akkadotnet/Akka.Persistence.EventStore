@@ -5,13 +5,9 @@ using Akka.Persistence.TCK.Query;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using FluentAssertions;
-using System;
-using System.Linq;
 using System.Threading.Tasks;
-using Akka.Streams.TestKit;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Akka.Persistence.EventStore.Tests.Query;
 
@@ -53,52 +49,5 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec, IClassFi
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
         
         round3.Should().HaveCount(1);
-    }
-    
-    [Fact]
-    public override void ReadJournal_query_CurrentEventsByTag_should_see_all_150_events()
-    {
-        if (ReadJournal is not ICurrentEventsByTagQuery queries)
-            throw IsTypeException.ForMismatchedType(nameof(ICurrentEventsByTagQuery), ReadJournal?.GetType().Name ?? "null");
-
-        var a = Sys.ActorOf(Query.TestActor.Props("a"));
-
-        foreach (var _ in Enumerable.Range(1, 150))
-        {
-            a.Tell("a green apple");
-            ExpectMsg("a green apple-done");
-        }
-
-        var greenSrc = queries.CurrentEventsByTag("green", offset: Offset.NoOffset());
-        var probe = greenSrc.RunWith(this.SinkProbe<EventEnvelope>(), Materializer);
-        probe.Request(150);
-        
-        foreach (var i in Enumerable.Range(1, 150))
-        {
-            ExpectEnvelope(probe, "a", i, "a green apple", "green");
-        }
-
-        //Need to request one more to get the completion
-        probe.Request(1);
-
-        probe.ExpectComplete();
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
-    }
-    
-    private void ExpectEnvelope(TestSubscriber.ManualProbe<EventEnvelope> probe,
-        string persistenceId,
-        long sequenceNr,
-        string @event,
-        string tag)
-    {
-        var envelope = probe.ExpectNext<EventEnvelope>(_ => true);
-        envelope.PersistenceId.Should().Be(persistenceId);
-        envelope.SequenceNr.Should().Be(sequenceNr);
-        envelope.Event.Should().Be(@event);
-
-        if (!SupportsTagsInEventEnvelope) return;
-
-        envelope.Tags.Should().NotBeNull();
-        envelope.Tags.Should().Contain(tag);
     }
 }

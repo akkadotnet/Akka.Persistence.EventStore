@@ -15,9 +15,9 @@ public record EventStoreQueryFilter(
         {
             return Direction switch
             {
-                Direction.Backwards => StreamContinuation.Stop,
-                Direction.Forwards => StreamContinuation.MoveNext,
-                _ => StreamContinuation.Stop
+                Direction.Backwards => StreamContinuation.Complete,
+                Direction.Forwards => StreamContinuation.Skip,
+                _ => StreamContinuation.Complete
             };
         }
 
@@ -25,13 +25,13 @@ public record EventStoreQueryFilter(
         {
             return Direction switch
             {
-                Direction.Backwards => StreamContinuation.MoveNext,
-                Direction.Forwards => StreamContinuation.Stop,
-                _ => StreamContinuation.Stop
+                Direction.Backwards => StreamContinuation.Skip,
+                Direction.Forwards => StreamContinuation.Complete,
+                _ => StreamContinuation.Complete
             };
         }
 
-        return IsLast(message) ? StreamContinuation.IncludeThenStop : StreamContinuation.Include;
+        return IsLast(message) ? StreamContinuation.IncludeThenComplete : StreamContinuation.Include;
     }
 
     private bool IsLast(IPersistentRepresentation message)
@@ -103,9 +103,9 @@ public record EventStoreQueryFilter(
     
     public enum StreamContinuation
     {
-        MoveNext,
+        Skip,
         Include,
-        Stop,
-        IncludeThenStop
+        Complete,
+        IncludeThenComplete
     }
 }

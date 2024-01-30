@@ -36,16 +36,16 @@ public sealed class FilterStreamStage(EventStoreQueryFilter filter) : SimpleLine
 
                 switch (filterResult)
                 {
-                    case EventStoreQueryFilter.StreamContinuation.MoveNext:
+                    case EventStoreQueryFilter.StreamContinuation.Skip:
                         Pull(_stage.Inlet);
                         break;
                     case EventStoreQueryFilter.StreamContinuation.Include:
                         Push(_stage.Outlet, element);
                         break;
-                    case EventStoreQueryFilter.StreamContinuation.Stop:
+                    case EventStoreQueryFilter.StreamContinuation.Complete:
                         Complete(_stage.Outlet);
                         break;
-                    case EventStoreQueryFilter.StreamContinuation.IncludeThenStop:
+                    case EventStoreQueryFilter.StreamContinuation.IncludeThenComplete:
                         Push(_stage.Outlet, element);
                         Complete(_stage.Outlet);
                         break;
