@@ -40,17 +40,22 @@ public class EventStoreJournal : AsyncWriteJournal
             settings: ActorMaterializerSettings.Create(Context.System),
             namePrefix: $"es-journal-mat-{Guid.NewGuid():N}");
 
-        _eventStoreDataSource = new EventStoreDataSource(_eventStoreClient, _serializer);
+        _eventStoreDataSource = new EventStoreDataSource(_eventStoreClient);
     }
 
     public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr)
     {
+        var filter = EventStoreQueryFilter.FromEnd(fromSequenceNr);
+        
         var lastMessage = await _eventStoreDataSource
             .Messages(
                 _settings.GetStreamName(persistenceId),
-                EventStoreQueryFilter.FromEnd(fromSequenceNr),
+                filter.From,
+                filter.Direction,
                 null,
                 false)
+            .DeSerializeEvents(_serializer)
+            .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion>(), _mat);
 
@@ -70,12 +75,17 @@ public class EventStoreJournal : AsyncWriteJournal
         long max,
         Action<IPersistentRepresentation> recoveryCallback)
     {
+        var filter = EventStoreQueryFilter.FromPositionInclusive(fromSequenceNr, fromSequenceNr, toSequenceNr);
+        
         await _eventStoreDataSource
             .Messages(
                 _settings.GetStreamName(persistenceId),
-                EventStoreQueryFilter.FromPositionInclusive(fromSequenceNr, fromSequenceNr, toSequenceNr),
+                filter.From,
+                filter.Direction,
                 null,
                 false)
+            .DeSerializeEvents(_serializer)
+            .Filter(filter)
             .Take(n: max)
             .RunForeach(r => recoveryCallback(r.Event), _mat);
     }
@@ -144,12 +154,17 @@ public class EventStoreJournal : AsyncWriteJournal
     {
         var streamName = _settings.GetStreamName(persistenceId);
 
+        var filter = EventStoreQueryFilter.FromEnd(maxSequenceNumber: toSequenceNr);
+        
         var lastMessage = await _eventStoreDataSource
             .Messages(
                 streamName,
-                EventStoreQueryFilter.FromEnd(maxSequenceNumber: toSequenceNr), 
+                filter.From,
+                filter.Direction, 
                 null,
                 false)
+            .DeSerializeEvents(_serializer)
+            .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion>(), _mat);
 

@@ -1,33 +1,32 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Akka.Persistence.EventStore.Query;
-using Akka.Persistence.EventStore.Serialization;
 using Akka.Streams.Dsl;
 using EventStore.Client;
 
 namespace Akka.Persistence.EventStore;
 
-public class EventStoreDataSource(EventStoreClient client, IJournalMessageSerializer serializer)
+public class EventStoreDataSource(EventStoreClient client)
 {
-    public Source<ReplayCompletion, NotUsed> Messages(
+    public Source<ResolvedEvent, NotUsed> Messages(
         string streamName,
-        EventStoreQueryFilter filter,
+        StreamPosition startFrom,
+        Direction direction,
         TimeSpan? refreshInterval,
         bool resolveLinkTos)
     {
         return Source.From(StartIterator);
 
-        async IAsyncEnumerable<ReplayCompletion> StartIterator()
+        async IAsyncEnumerable<ResolvedEvent> StartIterator()
         {
-            var startPosition = filter.From;
+            var startPosition = startFrom;
             var isFirstRun = true;
             var foundEvents = false;
             
             while (true)
             {
                 var readResult = client.ReadStreamAsync(
-                    filter.Direction,
+                    direction,
                     streamName,
                     startPosition,
                     resolveLinkTos: resolveLinkTos);
@@ -39,28 +38,10 @@ public class EventStoreDataSource(EventStoreClient client, IJournalMessageSerial
                     await foreach (var evnt in readResult)
                     {
                         foundEvents = true;
-                        
-                        var representation = await serializer.DeSerializeEvent(evnt);
 
                         startPosition = (evnt.Link?.EventNumber ?? evnt.OriginalEventNumber) + 1;
 
-                        if (representation == null)
-                            continue;
-                        
-                        var continuation = filter.Filter(representation);
-                        
-                        if (continuation == EventStoreQueryFilter.StreamContinuation.Stop)
-                            yield break;
-
-                        if (continuation == EventStoreQueryFilter.StreamContinuation.MoveNext)
-                            continue;
-
-                        yield return new ReplayCompletion(
-                            representation,
-                            evnt.Link?.EventNumber ?? evnt.OriginalEventNumber);
-                        
-                        if (continuation == EventStoreQueryFilter.StreamContinuation.IncludeThenStop)
-                            yield break;
+                        yield return evnt;
                     }
                 }
 

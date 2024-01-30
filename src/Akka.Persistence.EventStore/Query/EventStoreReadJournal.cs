@@ -26,6 +26,7 @@ public class EventStoreReadJournal
     private readonly EventStoreDataSource _eventStoreDataSource;
     private readonly EventStoreReadJournalSettings _settings;
     private readonly EventStoreJournalSettings _writeSettings;
+    private readonly IJournalMessageSerializer _serializer;
 
     public EventStoreReadJournal(ActorSystem system, Config config)
     {
@@ -34,10 +35,11 @@ public class EventStoreReadJournal
         _eventAdapters = Persistence.Instance.Apply(system).AdaptersFor(_settings.WritePlugin);
 
         _writeSettings = EventStorePersistence.Get(system).JournalSettings;
+
+        _serializer = _writeSettings.FindSerializer(system);
         
         _eventStoreDataSource = new EventStoreDataSource(
-            new EventStoreClient(EventStoreClientSettings.Create(_writeSettings.ConnectionString)),
-            _writeSettings.FindSerializer(system));
+            new EventStoreClient(EventStoreClientSettings.Create(_writeSettings.ConnectionString)));
     }
 
     public static string Identifier => "akka.persistence.query.journal.eventstore";
@@ -61,22 +63,36 @@ public class EventStoreReadJournal
         false);
 
     public Source<string, NotUsed> PersistenceIds()
-        => _eventStoreDataSource
+    {
+        var filter = EventStoreQueryFilter.FromStart();
+        
+        return _eventStoreDataSource
             .Messages(
                 _settings.PersistenceIdsStreamName,
-                EventStoreQueryFilter.FromStart(),
+                filter.From,
+                filter.Direction,
                 _settings.QueryRefreshInterval,
                 false)
+            .DeSerializeEvents(_serializer)
+            .Filter(filter)
             .Select(r => r.Event.PersistenceId);
-    
+    }
+
     public Source<string, NotUsed> CurrentPersistenceIds()
-        => _eventStoreDataSource
+    {
+        var filter = EventStoreQueryFilter.FromStart();
+        
+        return _eventStoreDataSource
             .Messages(
                 _settings.PersistenceIdsStreamName,
-                EventStoreQueryFilter.FromStart(),
+                filter.From,
+                filter.Direction,
                 null,
                 false)
+            .DeSerializeEvents(_serializer)
+            .Filter(filter)
             .Select(r => r.Event.PersistenceId);
+    }
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
         $"{_settings.TaggedStreamPrefix}{tag}",
@@ -106,22 +122,23 @@ public class EventStoreReadJournal
         string streamName,
         EventStoreQueryFilter filter,
         TimeSpan? refreshInterval,
-        bool resolveLinkTos)
-        => _eventStoreDataSource
-            .Messages(streamName, filter, refreshInterval, resolveLinkTos)
-            .SelectMany(r =>
-                AdaptEvents(r.Event)
-                    .Select(_ => new { representation = r.Event, ordering = r.Position }))
-            .Select(
-                r =>
-                    new EventEnvelope(
-                        offset: new Sequence(r.ordering.ToInt64()),
-                        persistenceId: r.representation.PersistenceId,
-                        sequenceNr: r.representation.SequenceNr,
-                        @event: r.representation.Payload,
-                        timestamp: r.representation.Timestamp,
-                        Array.Empty<string>()));
-    
+        bool resolveLinkTos) => _eventStoreDataSource
+        .Messages(streamName, filter.From, filter.Direction, refreshInterval, resolveLinkTos)
+        .DeSerializeEvents(_serializer)
+        .Filter(filter)
+        .SelectMany(r =>
+            AdaptEvents(r.Event)
+                .Select(_ => new { representation = r.Event, ordering = r.Position }))
+        .Select(
+            r =>
+                new EventEnvelope(
+                    offset: new Sequence(r.ordering.ToInt64()),
+                    persistenceId: r.representation.PersistenceId,
+                    sequenceNr: r.representation.SequenceNr,
+                    @event: r.representation.Payload,
+                    timestamp: r.representation.Timestamp,
+                    Array.Empty<string>()));
+
     private ImmutableList<IPersistentRepresentation> AdaptEvents(
         IPersistentRepresentation persistentRepresentation)
         => _eventAdapters
