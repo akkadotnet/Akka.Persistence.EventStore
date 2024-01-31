@@ -66,17 +66,17 @@ public class EventStoreReadJournal
                 .MapMaterializedValue(_ => cancelable);
         }
 
-        return Create();
+        return Create()
+            .MapMaterializedValue(_ => cancelable);
         
-        Source<PersistentSubscriptionMessage, ICancelable> Create()
+        Source<PersistentSubscriptionMessage, NotUsed> Create()
         {
             return Source.From(() => new EventStorePersistentSubscriptionEnumerable(
                     streamName,
                     groupName,
                     _subscriptionsClient,
                     maxBufferSize,
-                    cancelable.Token))
-                .MapMaterializedValue(_ => cancelable);
+                    cancelable.Token));
         }
     }
     
