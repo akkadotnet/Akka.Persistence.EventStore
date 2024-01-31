@@ -14,7 +14,7 @@ namespace Akka.Persistence.EventStore;
 
 public class EventStorePersistence : IExtension
 {
-    private static Config DefaultConfiguration()
+    public static Config DefaultConfiguration()
     {
         return ConfigurationFactory.FromResource<EventStorePersistence>("Akka.Persistence.EventStore.reference.conf");
     }
