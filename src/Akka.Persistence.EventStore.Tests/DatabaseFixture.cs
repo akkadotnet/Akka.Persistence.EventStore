@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Projections;
-using Akka.Persistence.EventStore.Query;
 using EventStore.Client;
 using Xunit;
 
@@ -166,15 +165,14 @@ public class DatabaseFixture : IAsyncLifetime
     private async Task InitializeProjections()
     {
         var settings = EventStoreClientSettings.Create(ConnectionString ?? "");
-    
-        settings.DefaultCredentials = new UserCredentials("admin", "changeit");
-    
+
         var projectionsManager = new EventStoreProjectionManagementClient(settings);
         
-        var readJournalSettings = new EventStoreReadJournalSettings(EventStoreConfiguration.Build(this).GetConfig(EventStoreReadJournal.Identifier));
-
-        await projectionsManager.SetupTaggedProjection(readJournalSettings);
-        await projectionsManager.SetupAllPersistenceIdsProjection(readJournalSettings);
-        await projectionsManager.SetupAllPersistedEventsProjection(readJournalSettings);
+        var journalSettings = new EventStoreJournalSettings(EventStoreConfiguration.Build(this)
+            .GetConfig(EventStorePersistence.JournalConfigPath));
+        
+        await projectionsManager.SetupTaggedProjection(journalSettings);
+        await projectionsManager.SetupAllPersistenceIdsProjection(journalSettings);
+        await projectionsManager.SetupAllPersistedEventsProjection(journalSettings);
     }
 }

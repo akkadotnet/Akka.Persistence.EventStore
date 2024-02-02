@@ -37,7 +37,7 @@ public class EventStoreReadJournal
         
         _eventAdapters = Persistence.Instance.Apply(system).AdaptersFor(_settings.WritePlugin);
 
-        _writeSettings = EventStorePersistence.Get(system).JournalSettings;
+        _writeSettings = new EventStoreJournalSettings(system.Settings.Config.GetConfig(_settings.WritePlugin));
 
         var clientSettings = EventStoreClientSettings.Create(_writeSettings.ConnectionString);
         
@@ -48,9 +48,7 @@ public class EventStoreReadJournal
         _eventStoreDataSource = new EventStoreDataSource(
             new EventStoreClient(EventStoreClientSettings.Create(_writeSettings.ConnectionString)));
     }
-
-    public static string Identifier => "akka.persistence.query.journal.eventstore";
-
+    
     public Source<PersistentSubscriptionMessage, ICancelable> PersistentSubscription(
         string streamName,
         string groupName,
@@ -79,7 +77,7 @@ public class EventStoreReadJournal
                     cancelable.Token));
         }
     }
-    
+
     public Source<EventEnvelope, NotUsed> EventsByPersistenceId(
         string persistenceId,
         long fromSequenceNr,
@@ -104,7 +102,7 @@ public class EventStoreReadJournal
         
         return _eventStoreDataSource
             .Messages(
-                _settings.PersistenceIdsStreamName,
+                _writeSettings.PersistenceIdsStreamName,
                 filter.From,
                 filter.Direction,
                 _settings.QueryRefreshInterval,
@@ -120,36 +118,37 @@ public class EventStoreReadJournal
         
         return _eventStoreDataSource
             .Messages(
-                _settings.PersistenceIdsStreamName,
+                _writeSettings.PersistenceIdsStreamName,
                 filter.From,
                 filter.Direction,
                 null,
-                false)
+                false,
+                TimeSpan.FromMilliseconds(300))
             .DeSerializeEvents(_serializer)
             .Filter(filter)
             .Select(r => r.Event.PersistenceId);
     }
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        $"{_settings.TaggedStreamPrefix}{tag}",
+        $"{_writeSettings.TaggedStreamPrefix}{tag}",
         EventStoreQueryFilter.FromOffsetExclusive(offset), 
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        $"{_settings.TaggedStreamPrefix}{tag}",
+        $"{_writeSettings.TaggedStreamPrefix}{tag}",
         EventStoreQueryFilter.FromOffsetExclusive(offset),
         null,
         true);
 
     public Source<EventEnvelope, NotUsed> AllEvents(Offset offset) => EventsFromStreamSource(
-        _settings.PersistedEventsStreamName,
+        _writeSettings.PersistedEventsStreamName,
         EventStoreQueryFilter.FromOffsetExclusive(offset),
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentAllEvents(Offset offset) => EventsFromStreamSource(
-        _settings.PersistedEventsStreamName,
+        _writeSettings.PersistedEventsStreamName,
         EventStoreQueryFilter.FromOffsetExclusive(offset),
         null,
         true);
@@ -159,7 +158,7 @@ public class EventStoreReadJournal
         EventStoreQueryFilter filter,
         TimeSpan? refreshInterval,
         bool resolveLinkTos) => _eventStoreDataSource
-        .Messages(streamName, filter.From, filter.Direction, refreshInterval, resolveLinkTos)
+        .Messages(streamName, filter.From, filter.Direction, refreshInterval, resolveLinkTos, TimeSpan.FromMilliseconds(300))
         .DeSerializeEvents(_serializer)
         .Filter(filter)
         .SelectMany(r =>

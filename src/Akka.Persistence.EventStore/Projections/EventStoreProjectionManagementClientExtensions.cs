@@ -14,7 +14,7 @@ public static class EventStoreProjectionManagementClientExtensions
 {
     public static Task SetupTaggedProjection(
         this EventStoreProjectionManagementClient projectionsManager,
-        EventStoreReadJournalSettings settings,
+        EventStoreJournalSettings settings,
         string name = "events_by_tag")
     {
         return CreateProjection(
@@ -29,7 +29,7 @@ public static class EventStoreProjectionManagementClientExtensions
     
     public static Task SetupAllPersistenceIdsProjection(
         this EventStoreProjectionManagementClient projectionsManager,
-        EventStoreReadJournalSettings settings,
+        EventStoreJournalSettings settings,
         string name = "all_persistence_ids")
     {
         return CreateProjection(
@@ -47,7 +47,7 @@ public static class EventStoreProjectionManagementClientExtensions
     
     public static Task SetupAllPersistedEventsProjection(
         this EventStoreProjectionManagementClient projectionsManager,
-        EventStoreReadJournalSettings settings,
+        EventStoreJournalSettings settings,
         string name = "all_persisted_events")
     {
         return CreateProjection(

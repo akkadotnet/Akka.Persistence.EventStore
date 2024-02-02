@@ -217,7 +217,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit, IClassFix
                         "{}"u8.ToArray())));
         }
         
-        var queries = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+        var queries = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
 
         var stream = queries.PersistentSubscription(
             streamName,

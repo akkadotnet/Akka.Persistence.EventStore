@@ -11,6 +11,6 @@ public class EventStoreEventsByTagSpec : EventsByTagSpec, IClassFixture<Database
     public EventStoreEventsByTagSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
         base(EventStoreConfiguration.Build(databaseFixture.Restart()), nameof(EventStoreEventsByTagSpec), output)
     {
-        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
 }

@@ -14,16 +14,22 @@ public class EventStoreJournalSettings : ISettingsWithAdapter
             throw new ArgumentNullException(nameof(config),
                 "EventStore journal settings cannot be initialized, because required HOCON section couldn't been found");
 
-        ConnectionString = config.GetRequiredString("connection-string", "esdb://admin:changeit@localhost:2113");
-        Adapter = config.GetRequiredString("adapter", "default");
-        DefaultSerializer = config.GetString("default-serializer");
+        config = config.WithFallback(EventStorePersistence.DefaultJournalConfiguration);
+
+        ConnectionString = config.GetString("connection-string");
+        Adapter = config.GetString("adapter", "default");
         StreamPrefix = config.GetString("prefix", "");
+        TaggedStreamPrefix = config.GetString("tagged-stream-prefix", "tagged-");
+        PersistenceIdsStreamName = config.GetString("persistence-ids-stream-name", "persistenceids");
+        PersistedEventsStreamName = config.GetString("persisted-events-stream-name", "persistedevents");
     }
 
     public string ConnectionString { get; }
     public string Adapter { get; }
-    public string? DefaultSerializer { get; }
     public string StreamPrefix { get; }
+    public string TaggedStreamPrefix { get; }
+    public string PersistenceIdsStreamName { get; }
+    public string PersistedEventsStreamName { get; }
 
     public string GetStreamName(string persistenceId)
     {

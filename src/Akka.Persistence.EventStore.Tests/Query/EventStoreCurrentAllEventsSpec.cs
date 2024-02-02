@@ -12,6 +12,6 @@ public class EventStoreCurrentAllEventsSpec : CurrentAllEventsSpec, IClassFixtur
     public EventStoreCurrentAllEventsSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
         base(EventStoreConfiguration.Build(databaseFixture.Restart()), nameof(EventStoreCurrentAllEventsSpec), output)
     {
-        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
 }
