@@ -24,10 +24,10 @@ public static class PersistentSubscriptionSourceExtensions
     
     public static Source<DeserializedEvent<IPersistentRepresentation?>, ICancelable> DeserializeWith(
         this Source<PersistentSubscriptionMessage, ICancelable> source,
-        IJournalMessageSerializer serializer)
+        IMessageAdapter adapter)
     {
         return source
-            .DeserializeWith(serializer.DeSerializeEvent);
+            .DeserializeWith(evnt => Task.FromResult(adapter.AdaptEvent(evnt)));
     }
     
     public record DeserializedEvent<TEvent>(

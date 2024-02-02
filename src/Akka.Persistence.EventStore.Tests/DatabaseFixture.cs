@@ -6,9 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Akka.Persistence.EventStore.Configuration;
-using Akka.Persistence.EventStore.Projections;
-using EventStore.Client;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
@@ -100,7 +97,8 @@ public class DatabaseFixture : IAsyncLifetime
                     {
                         "EVENTSTORE_RUN_PROJECTIONS=All",
                         "EVENTSTORE_MEM_DB=True",
-                        "EVENTSTORE_INSECURE=True"
+                        "EVENTSTORE_INSECURE=True",
+                        "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=True"
                     },
                     HostConfig = new HostConfig
                     {
@@ -128,13 +126,10 @@ public class DatabaseFixture : IAsyncLifetime
             ConnectionString = $"esdb://admin:changeit@localhost:{_httpPort}?tls=false&tlsVerifyCert=false";
             
             await Task.Delay(5000);
-            
-            await InitializeProjections();
         }
         else
         {
             ConnectionString = "esdb://admin:changeit@localhost:2113?tls=false&tlsVerifyCert=false";
-            await InitializeProjections();
         }
     }
 
@@ -146,7 +141,6 @@ public class DatabaseFixture : IAsyncLifetime
             new ContainerRestartParameters { WaitBeforeKillSeconds = 0 }).Wait();
         
         Task.Delay(5000).Wait();
-        InitializeProjections().Wait();
         return this;
     }
 
@@ -160,19 +154,5 @@ public class DatabaseFixture : IAsyncLifetime
                 new ContainerRemoveParameters { Force = true });
             _client.Dispose();
         }
-    }
-    
-    private async Task InitializeProjections()
-    {
-        var settings = EventStoreClientSettings.Create(ConnectionString ?? "");
-
-        var projectionsManager = new EventStoreProjectionManagementClient(settings);
-        
-        var journalSettings = new EventStoreJournalSettings(EventStoreConfiguration.Build(this)
-            .GetConfig(EventStorePersistence.JournalConfigPath));
-        
-        await projectionsManager.SetupTaggedProjection(journalSettings);
-        await projectionsManager.SetupAllPersistenceIdsProjection(journalSettings);
-        await projectionsManager.SetupAllPersistedEventsProjection(journalSettings);
     }
 }

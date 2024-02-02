@@ -1,12 +1,11 @@
 using System.Collections.Immutable;
-using System.Threading.Tasks;
 using Akka.Persistence.EventStore.Serialization;
 using EventStore.Client;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-public class TestJournalMessageSerializer(Akka.Serialization.Serialization serialization) 
-    : DefaultJournalMessageSerializer(serialization)
+public class TestMessageAdapter(Akka.Serialization.Serialization serialization, string defaultSerializer) 
+    : DefaultMessageAdapter(serialization, defaultSerializer)
 {
     protected override IStoredEventMetadata GetEventMetadata(
         IPersistentRepresentation message,
@@ -15,9 +14,9 @@ public class TestJournalMessageSerializer(Akka.Serialization.Serialization seria
         return new TestEventMetadata(message, tags);
     }
 
-    protected override async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
+    protected override IStoredEventMetadata? GetEventMetadataFrom(ResolvedEvent evnt)
     {
-        var metadata = await DeserializeData(evnt.Event.Metadata, typeof(TestEventMetadata));
+        var metadata = DeSerialize(evnt.Event.Metadata.ToArray(), typeof(TestEventMetadata));
         
         return metadata as IStoredEventMetadata;
     }

@@ -24,7 +24,8 @@ public class EventStoreEndToEndSpec(ITestOutputHelper output, DatabaseFixture fi
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder.WithEventStorePersistence(
-                connectionString: fixture.ConnectionString ?? "")
+                connectionString: fixture.ConnectionString ?? "",
+                autoInitialize: true)
             .StartActors(
                 (system, registry) =>
                 {

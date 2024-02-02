@@ -7,51 +7,51 @@ namespace Akka.Persistence.EventStore.Serialization;
 
 public static class SettingsWithAdapterExtensions
 {
-    public static IJournalMessageSerializer FindSerializer(
+    public static IMessageAdapter FindEventAdapter(
         this ISettingsWithAdapter settings,
         ActorSystem actorSystem)
     {
         if (settings.Adapter == "default")
-            return GetDefaultSerializer();
+            return GetDefaultAdapter();
         
         var logger = actorSystem.Log;
         
         try
         {
-            var journalSerializerType = Type.GetType(settings.Adapter);
+            var journalMessageAdapterType = Type.GetType(settings.Adapter);
          
-            if (journalSerializerType == null)
+            if (journalMessageAdapterType == null)
             {
                 logger.Error(
-                    $"Unable to find type [{settings.Adapter}] Serializer. Is the assembly referenced properly? Falling back to default");
+                    $"Unable to find type [{settings.Adapter}] Adapter. Is the assembly referenced properly? Falling back to default");
                 
-                return GetDefaultSerializer();
+                return GetDefaultAdapter();
             }
 
-            var serializerConstructor =
-                journalSerializerType.GetConstructor([typeof(Akka.Serialization.Serialization)]);
+            var adapterConstructor =
+                journalMessageAdapterType.GetConstructor([typeof(Akka.Serialization.Serialization)]);
 
-            if ((serializerConstructor != null
-                    ? serializerConstructor.Invoke([actorSystem.Serialization])
-                    : Activator.CreateInstance(journalSerializerType)) is IJournalMessageSerializer journalSerializer)
+            if ((adapterConstructor != null
+                    ? adapterConstructor.Invoke([actorSystem.Serialization])
+                    : Activator.CreateInstance(journalMessageAdapterType)) is IMessageAdapter adapter)
                 
-                return journalSerializer;
+                return adapter;
 
             logger.Error(
-                $"Unable to create instance of type [{journalSerializerType.AssemblyQualifiedName}] Serializer. Do you have an empty constructor, or one that takes in Akka.Serialization.Serialization? Falling back to default.");
+                $"Unable to create instance of type [{journalMessageAdapterType.AssemblyQualifiedName}] Adapter. Do you have an empty constructor, or one that takes in Akka.Serialization.Serialization? Falling back to default.");
             
-            return GetDefaultSerializer();
+            return GetDefaultAdapter();
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error loading Serializer. Falling back to default");
+            logger.Error(e, "Error loading Adapter. Falling back to default");
             
-            return GetDefaultSerializer();
+            return GetDefaultAdapter();
         }
         
-        IJournalMessageSerializer GetDefaultSerializer()
+        IMessageAdapter GetDefaultAdapter()
         {
-            return new DefaultJournalMessageSerializer(actorSystem.Serialization);
+            return new DefaultMessageAdapter(actorSystem.Serialization, settings.DefaultSerializer);
         }
     }
 }

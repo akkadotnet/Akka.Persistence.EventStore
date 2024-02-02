@@ -9,12 +9,12 @@ public static class EventStoreStreamSourceExtensions
 {
     public static Source<ReplayCompletion, NotUsed> DeSerializeEvents(
         this Source<ResolvedEvent, NotUsed> source,
-        IJournalMessageSerializer serializer)
+        IMessageAdapter adapter)
     {
         return source
-            .SelectAsync(1, async evnt =>
+            .Select(evnt =>
             {
-                var message = await serializer.DeSerializeEvent(evnt);
+                var message = adapter.AdaptEvent(evnt);
 
                 return (Event: message, Position: evnt.Link?.EventNumber ?? evnt.OriginalEventNumber);
             })

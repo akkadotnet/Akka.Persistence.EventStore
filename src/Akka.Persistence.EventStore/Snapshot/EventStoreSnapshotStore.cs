@@ -22,7 +22,7 @@ public class EventStoreSnapshotStore : SnapshotStore
     }
 
     private readonly EventStoreClient _eventStoreClient;
-    private readonly IJournalMessageSerializer _serializer;
+    private readonly IMessageAdapter _messageAdapter;
     private readonly EventStoreSnapshotSettings _settings;
 
     private readonly ILoggingAdapter _log;
@@ -33,7 +33,7 @@ public class EventStoreSnapshotStore : SnapshotStore
         _log = Context.GetLogger();
 
         _eventStoreClient = new EventStoreClient(EventStoreClientSettings.Create(_settings.ConnectionString));
-        _serializer = _settings.FindSerializer(Context.System);
+        _messageAdapter = _settings.FindEventAdapter(Context.System);
     }
 
     protected override async Task<SelectedSnapshot?> LoadAsync(
@@ -65,7 +65,7 @@ public class EventStoreSnapshotStore : SnapshotStore
 
         var events = await readResult.ToListAsync();
 
-        return events.Count == 0 ? null : await _serializer.DeSerializeSnapshot(events.First());
+        return events.Count == 0 ? null : _messageAdapter.AdaptSnapshot(events.First());
     }
 
     protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot)
@@ -77,7 +77,7 @@ public class EventStoreSnapshotStore : SnapshotStore
             StreamState.Any,
             new List<EventData>
             {
-                await _serializer.Serialize(metadata, snapshot)
+                _messageAdapter.Adapt(metadata, snapshot)
             });
 
         _log.Debug(
@@ -198,7 +198,7 @@ public class EventStoreSnapshotStore : SnapshotStore
             var snapshotResult = new SelectedSnapshotResult
             {
                 EventNumber = evnt.OriginalEventNumber.ToInt64(),
-                Snapshot = await _serializer.DeSerializeSnapshot(evnt)
+                Snapshot = _messageAdapter.AdaptSnapshot(evnt)
             };
 
             if (snapshotResult.Snapshot == null)

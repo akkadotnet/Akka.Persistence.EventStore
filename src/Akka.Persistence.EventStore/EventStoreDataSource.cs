@@ -25,7 +25,6 @@ public class EventStoreDataSource(EventStoreClient client)
             
             while (true)
             {
-
                 var readResult = client.ReadStreamAsync(
                     direction,
                     streamName,

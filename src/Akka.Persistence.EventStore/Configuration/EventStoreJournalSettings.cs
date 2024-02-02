@@ -17,15 +17,21 @@ public class EventStoreJournalSettings : ISettingsWithAdapter
         config = config.WithFallback(EventStorePersistence.DefaultJournalConfiguration);
 
         ConnectionString = config.GetString("connection-string");
-        Adapter = config.GetString("adapter", "default");
+        Adapter = config.GetString("adapter");
         StreamPrefix = config.GetString("prefix", "");
-        TaggedStreamPrefix = config.GetString("tagged-stream-prefix", "tagged-");
-        PersistenceIdsStreamName = config.GetString("persistence-ids-stream-name", "persistenceids");
-        PersistedEventsStreamName = config.GetString("persisted-events-stream-name", "persistedevents");
+        TaggedStreamPrefix = config.GetString("tagged-stream-prefix");
+        PersistenceIdsStreamName = config.GetString("persistence-ids-stream-name");
+        PersistedEventsStreamName = config.GetString("persisted-events-stream-name");
+        DefaultSerializer = config.GetString("serializer");
+        AutoInitialize = config.GetBoolean("auto-initialize");
+        MaterializerDispatcher = config.GetString("materializer-dispatcher", "akka.actor.default-dispatcher");
     }
 
     public string ConnectionString { get; }
     public string Adapter { get; }
+    public string DefaultSerializer { get; }
+    public string MaterializerDispatcher { get; }
+    public bool AutoInitialize { get; set; }
     public string StreamPrefix { get; }
     public string TaggedStreamPrefix { get; }
     public string PersistenceIdsStreamName { get; }

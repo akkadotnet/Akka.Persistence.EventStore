@@ -29,7 +29,7 @@ public class EventStoreReadJournal
     private readonly EventStoreReadJournalSettings _settings;
     private readonly EventStoreJournalSettings _writeSettings;
     private readonly EventStorePersistentSubscriptionsClient _subscriptionsClient;
-    private readonly IJournalMessageSerializer _serializer;
+    private readonly IMessageAdapter _adapter;
 
     public EventStoreReadJournal(ActorSystem system, Config config)
     {
@@ -43,7 +43,7 @@ public class EventStoreReadJournal
         
         _subscriptionsClient = new EventStorePersistentSubscriptionsClient(clientSettings);
 
-        _serializer = _writeSettings.FindSerializer(system);
+        _adapter = _writeSettings.FindEventAdapter(system);
         
         _eventStoreDataSource = new EventStoreDataSource(
             new EventStoreClient(EventStoreClientSettings.Create(_writeSettings.ConnectionString)));
@@ -107,7 +107,7 @@ public class EventStoreReadJournal
                 filter.Direction,
                 _settings.QueryRefreshInterval,
                 false)
-            .DeSerializeEvents(_serializer)
+            .DeSerializeEvents(_adapter)
             .Filter(filter)
             .Select(r => r.Event.PersistenceId);
     }
@@ -124,7 +124,7 @@ public class EventStoreReadJournal
                 null,
                 false,
                 TimeSpan.FromMilliseconds(300))
-            .DeSerializeEvents(_serializer)
+            .DeSerializeEvents(_adapter)
             .Filter(filter)
             .Select(r => r.Event.PersistenceId);
     }
@@ -159,7 +159,7 @@ public class EventStoreReadJournal
         TimeSpan? refreshInterval,
         bool resolveLinkTos) => _eventStoreDataSource
         .Messages(streamName, filter.From, filter.Direction, refreshInterval, resolveLinkTos, TimeSpan.FromMilliseconds(300))
-        .DeSerializeEvents(_serializer)
+        .DeSerializeEvents(_adapter)
         .Filter(filter)
         .SelectMany(r =>
             AdaptEvents(r.Event)

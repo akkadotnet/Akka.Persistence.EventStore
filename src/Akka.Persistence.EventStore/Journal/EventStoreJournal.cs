@@ -6,7 +6,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using Akka.Configuration;
+using Akka.Event;
 using Akka.Persistence.EventStore.Configuration;
+using Akka.Persistence.EventStore.Projections;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.EventStore.Serialization;
 using Akka.Streams;
@@ -16,30 +18,20 @@ using EventStore.Client;
 
 namespace Akka.Persistence.EventStore.Journal;
 
-public class EventStoreJournal : AsyncWriteJournal
+public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 {
-    private readonly EventStoreClient _eventStoreClient;
-    private readonly IJournalMessageSerializer _serializer;
     private readonly EventStoreJournalSettings _settings;
-    private readonly ActorMaterializer _mat;
-    private readonly EventStoreDataSource _eventStoreDataSource;
-
+    private readonly ILoggingAdapter _log;
+    
+    private EventStoreClient _eventStoreClient = null!;
+    private IMessageAdapter _adapter = null!;
+    private EventStoreDataSource _eventStoreDataSource = null!;
+    private ActorMaterializer _mat = null!;
+    
     public EventStoreJournal(Config journalConfig)
     {
+        _log = Context.GetLogger();
         _settings = new EventStoreJournalSettings(journalConfig);
-
-        var connectionString = _settings.ConnectionString;
-
-        _eventStoreClient = new EventStoreClient(EventStoreClientSettings.Create(connectionString));
-
-        _serializer = _settings.FindSerializer(Context.System);
-
-        _mat = Materializer.CreateSystemMaterializer(
-            context: (ExtendedActorSystem)Context.System,
-            settings: ActorMaterializerSettings.Create(Context.System),
-            namePrefix: $"es-journal-mat-{Guid.NewGuid():N}");
-
-        _eventStoreDataSource = new EventStoreDataSource(_eventStoreClient);
     }
 
     public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr)
@@ -53,7 +45,7 @@ public class EventStoreJournal : AsyncWriteJournal
                 filter.Direction,
                 null,
                 false)
-            .DeSerializeEvents(_serializer)
+            .DeSerializeEvents(_adapter)
             .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion>(), _mat);
@@ -83,7 +75,7 @@ public class EventStoreJournal : AsyncWriteJournal
                 filter.Direction,
                 null,
                 false)
-            .DeSerializeEvents(_serializer)
+            .DeSerializeEvents(_adapter)
             .Filter(filter)
             .Take(n: max)
             .RunForeach(r => recoveryCallback(r.Event), _mat);
@@ -104,10 +96,10 @@ public class EventStoreJournal : AsyncWriteJournal
 
             try
             {
-                var events = await Task.WhenAll(persistentMessages
+                var events = persistentMessages
                     .Select(x => x.WithTimestamp(DateTime.UtcNow.Ticks))
-                    .Select(persistentMessage => _serializer.Serialize(persistentMessage))
-                    .ToImmutableList());
+                    .Select(persistentMessage => _adapter.Adapt(persistentMessage))
+                    .ToImmutableList();
 
                 var pendingWrite = new
                 {
@@ -162,7 +154,7 @@ public class EventStoreJournal : AsyncWriteJournal
                 filter.Direction, 
                 null,
                 false)
-            .DeSerializeEvents(_serializer)
+            .DeSerializeEvents(_adapter)
             .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion>(), _mat);
@@ -183,5 +175,80 @@ public class EventStoreJournal : AsyncWriteJournal
                         metadata.Metadata.Acl,
                         metadata.Metadata.CustomMetadata));
         }
+    }
+
+    public IStash Stash { get; set; } = null!;
+    
+    protected override void PreStart()
+    {
+        base.PreStart();
+        Initialize().PipeTo(Self);
+
+        // We have to use BecomeStacked here because the default Receive method is sealed in the
+        // base class and it uses a custom code to handle received messages.
+        // We need to suspend the base class behavior while we're waiting for the journal to be properly
+        // initialized.
+        BecomeStacked(Initializing);
+    }
+    
+    private bool Initializing(object message)
+    {
+        switch (message)
+        {
+            case Status.Success:
+                UnbecomeStacked();
+                Stash.UnstashAll();
+                return true;
+
+            case Status.Failure fail:
+                _log.Error(fail.Cause, "Failure during {0} initialization.", Self);
+                Context.Stop(Self);
+                return true;
+
+            default:
+                Stash.Stash();
+                return true;
+        }
+    }
+    
+    private async Task<Status> Initialize()
+    {
+        try
+        {
+            var connectionString = _settings.ConnectionString;
+
+            var eventStoreClientSettings = EventStoreClientSettings.Create(connectionString);
+
+            _eventStoreClient = new EventStoreClient(eventStoreClientSettings);
+
+            _adapter = _settings.FindEventAdapter(Context.System);
+
+            _eventStoreDataSource = new EventStoreDataSource(_eventStoreClient);
+            
+            _mat = Materializer.CreateSystemMaterializer(
+                context: (ExtendedActorSystem)Context.System,
+                settings: ActorMaterializerSettings
+                    .Create(Context.System)
+                    .WithDispatcher(_settings.MaterializerDispatcher),
+                namePrefix: "esWriteJournal");
+            
+            if (!_settings.AutoInitialize)
+                return Status.Success.Instance;
+
+            var projectionSetup = new EventStoreProjectionsSetup(
+                new EventStoreProjectionManagementClient(eventStoreClientSettings),
+                Context.System,
+                _settings);
+
+            await projectionSetup.SetupTaggedProjection(skipIfExists: true);
+            await projectionSetup.SetupAllPersistedEventsProjection(skipIfExists: true);
+            await projectionSetup.SetupAllPersistenceIdsProjection(skipIfExists: true);
+        }
+        catch (Exception e)
+        {
+            return new Status.Failure(e);
+        }
+
+        return Status.Success.Instance;
     }
 }

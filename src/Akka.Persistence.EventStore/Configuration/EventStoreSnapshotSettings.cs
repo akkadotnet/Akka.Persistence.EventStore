@@ -19,10 +19,12 @@ public class EventStoreSnapshotSettings : ISettingsWithAdapter
         ConnectionString = config.GetString("connection-string");
         Adapter = config.GetString("adapter", "default");
         StreamPrefix = config.GetString("prefix", "snapshot@");
+        DefaultSerializer = config.GetString("serializer");
     }
 
     public string ConnectionString { get; }
     public string Adapter { get; }
+    public string DefaultSerializer { get; }
     public string StreamPrefix { get; }
     
     public string GetStreamName(string persistenceId)

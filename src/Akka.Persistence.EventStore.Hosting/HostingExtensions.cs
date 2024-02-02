@@ -11,7 +11,7 @@ public static class HostingExtensions
         PersistenceMode mode = PersistenceMode.Both,
         Action<AkkaPersistenceJournalBuilder>? journalBuilder = null,
         string adapter = "default",
-        bool autoInitialize = true,
+        bool autoInitialize = false,
         string pluginIdentifier = "eventstore",
         bool isDefaultPlugin = true,
         string? snapshotStreamPrefix = null,

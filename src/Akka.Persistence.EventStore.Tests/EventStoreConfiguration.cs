@@ -13,6 +13,7 @@ public static class EventStoreConfiguration
                 akka.persistence.journal.eventstore {{
                     class = ""Akka.Persistence.EventStore.Journal.EventStoreJournal, Akka.Persistence.EventStore""
                     connection-string = ""{databaseFixture.ConnectionString}""
+                    auto-initialize = true
                     event-adapters {{
                         color-tagger  = ""Akka.Persistence.TCK.Query.ColorFruitTagger, Akka.Persistence.TCK""
                     }}
