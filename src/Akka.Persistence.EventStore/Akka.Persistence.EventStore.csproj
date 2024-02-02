@@ -18,7 +18,8 @@
 		<EmbeddedResource Include="Projections\allPersistedEventsProjection.js" />
 		<EmbeddedResource Include="Projections\allPersistenceIdsProjection.js" />
 		<EmbeddedResource Include="Projections\taggedProjection.js" />
-		<EmbeddedResource Include="reference.conf" />
+		<EmbeddedResource Include="persistence.conf" />
+		<EmbeddedResource Include="snapshot.conf" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Akka" Version="1.5.16" />

@@ -1,11 +1,11 @@
 ﻿using Akka.Actor;
-using Akka.Event;
 using Akka.Persistence.Journal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
+using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.EventStore.Serialization;
@@ -24,10 +24,9 @@ public class EventStoreJournal : AsyncWriteJournal
     private readonly ActorMaterializer _mat;
     private readonly EventStoreDataSource _eventStoreDataSource;
 
-    public EventStoreJournal()
+    public EventStoreJournal(Config journalConfig)
     {
-        _settings = EventStorePersistence.Get(Context.System).JournalSettings;
-        Context.GetLogger();
+        _settings = new EventStoreJournalSettings(journalConfig);
 
         var connectionString = _settings.ConnectionString;
 

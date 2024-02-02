@@ -21,7 +21,7 @@ public class EventStoreEventsByPersistenceIdSpec : Akka.TestKit.Xunit2.TestKit, 
         base(EventStoreConfiguration.Build(databaseFixture), nameof(EventStoreEventsByPersistenceIdSpec), output)
     {
         Materializer = Sys.Materializer();
-        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
 
     [Fact]

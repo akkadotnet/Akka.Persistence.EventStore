@@ -16,14 +16,14 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec, IClassFi
     public EventStoreCurrentEventsByTagSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
         base(EventStoreConfiguration.Build(databaseFixture.Restart()), nameof(EventStoreCurrentEventsByTagSpec), output)
     {
-        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
 
     [Fact]
     public async Task ReadJournal_query_offset_exclusivity_should_be_correct()
     {
         var journal = PersistenceQuery.Get(Sys)
-            .ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+            .ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
 
         var actor = Sys.ActorOf(Query.TestActor.Props("a"));
         actor.Tell("a green apple");

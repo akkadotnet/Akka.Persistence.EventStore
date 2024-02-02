@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Akka.Configuration;
 using Akka.Event;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Serialization;
@@ -26,9 +27,9 @@ public class EventStoreSnapshotStore : SnapshotStore
 
     private readonly ILoggingAdapter _log;
 
-    public EventStoreSnapshotStore()
+    public EventStoreSnapshotStore(Config snapshotConfig)
     {
-        _settings = EventStorePersistence.Get(Context.System).SnapshotStoreSettings;
+        _settings = new EventStoreSnapshotSettings(snapshotConfig);
         _log = Context.GetLogger();
 
         _eventStoreClient = new EventStoreClient(EventStoreClientSettings.Create(_settings.ConnectionString));

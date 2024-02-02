@@ -10,9 +10,15 @@ public static class HostingExtensions
         string connectionString,
         PersistenceMode mode = PersistenceMode.Both,
         Action<AkkaPersistenceJournalBuilder>? journalBuilder = null,
+        string adapter = "default",
         bool autoInitialize = true,
         string pluginIdentifier = "eventstore",
-        bool isDefaultPlugin = true)
+        bool isDefaultPlugin = true,
+        string? snapshotStreamPrefix = null,
+        string? journalStreamPrefix = null,
+        string? taggedJournalStreamPrefix = null,
+        string? persistenceIdsStreamName = null,
+        string? persistedEventsStreamName = null)
     {
         if (mode == PersistenceMode.SnapshotStore && journalBuilder is not null)
             throw new Exception($"{nameof(journalBuilder)} can only be set when {nameof(mode)} is set to either {PersistenceMode.Both} or {PersistenceMode.Journal}");
@@ -23,7 +29,12 @@ public static class HostingExtensions
         var journalOptions = new EventStoreJournalOptions(isDefaultPlugin, pluginIdentifier)
         {
             ConnectionString = connectionString,
-            AutoInitialize = autoInitialize
+            AutoInitialize = autoInitialize,
+            Adapter = adapter,
+            StreamPrefix = journalStreamPrefix,
+            TaggedStreamPrefix = taggedJournalStreamPrefix,
+            PersistedEventsStreamName = persistedEventsStreamName,
+            PersistenceIdsStreamName = persistenceIdsStreamName
         };
         
         var adapters = new AkkaPersistenceJournalBuilder(journalOptions.Identifier, builder);
@@ -36,6 +47,8 @@ public static class HostingExtensions
         {
             ConnectionString = connectionString,
             AutoInitialize = autoInitialize,
+            Adapter = adapter,
+            Prefix = snapshotStreamPrefix
         };
 
         return mode switch
@@ -74,7 +87,7 @@ public static class HostingExtensions
                     .AddHocon(snapshotOptions.ToConfig(), HoconAddMode.Prepend)
                     .AddHocon(journalOptions.DefaultConfig, HoconAddMode.Append)
                     .AddHocon(snapshotOptions.DefaultConfig, HoconAddMode.Append)
-                    .AddHocon(journalOptions.DefaultQueryConfig, HoconAddMode.Append),
+                    .AddHocon(journalOptions.DefaultQueryConfig, HoconAddMode.Append)
         };
     }
 }

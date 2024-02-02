@@ -14,15 +14,15 @@ public class EventStoreSnapshotSettings : ISettingsWithAdapter
             throw new ArgumentNullException(nameof(config),
                 "EventStore snapshot-store settings cannot be initialized, because required HOCON section couldn't been found");
 
-        ConnectionString = config.GetRequiredString("connection-string", "esdb://admin:changeit@localhost:2113");
+        config = config.WithFallback(EventStorePersistence.DefaultSnapshotConfiguration);
+        
+        ConnectionString = config.GetString("connection-string");
         Adapter = config.GetString("adapter", "default");
-        DefaultSerializer = config.GetString("default-serializer");
         StreamPrefix = config.GetString("prefix", "snapshot@");
     }
 
     public string ConnectionString { get; }
     public string Adapter { get; }
-    public string? DefaultSerializer { get; }
     public string StreamPrefix { get; }
     
     public string GetStreamName(string persistenceId)

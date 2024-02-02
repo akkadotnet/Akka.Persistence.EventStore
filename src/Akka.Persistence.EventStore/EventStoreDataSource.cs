@@ -13,15 +13,14 @@ public class EventStoreDataSource(EventStoreClient client)
         StreamPosition startFrom,
         Direction direction,
         TimeSpan? refreshInterval,
-        bool resolveLinkTos)
+        bool resolveLinkTos,
+        TimeSpan? noEventGracePeriod = null)
     {
         return Source.From(StartIterator);
 
         async IAsyncEnumerable<ResolvedEvent> StartIterator()
         {
             var startPosition = startFrom;
-            var isFirstRun = true;
-            var foundEvents = false;
             
             while (true)
             {
@@ -33,28 +32,28 @@ public class EventStoreDataSource(EventStoreClient client)
 
                 var readState = await readResult.ReadState;
 
+                var foundEvents = false;
+                
                 if (readState == ReadState.Ok)
                 {
                     await foreach (var evnt in readResult)
                     {
-                        foundEvents = true;
-
                         startPosition = (evnt.Link?.EventNumber ?? evnt.OriginalEventNumber) + 1;
+
+                        foundEvents = true;
 
                         yield return evnt;
                     }
                 }
 
-                if (isFirstRun && !foundEvents)
+                if (refreshInterval == null && !foundEvents && noEventGracePeriod != null)
                 {
-                    isFirstRun = false;
+                    await Task.Delay(noEventGracePeriod.Value);
 
-                    await Task.Delay(TimeSpan.FromMilliseconds(500));
+                    noEventGracePeriod = null;
                     
                     continue;
                 }
-                
-                isFirstRun = false;
 
                 if (refreshInterval == null)
                     yield break;

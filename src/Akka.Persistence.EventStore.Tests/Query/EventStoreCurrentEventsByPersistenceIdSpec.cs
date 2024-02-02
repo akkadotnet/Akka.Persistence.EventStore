@@ -13,6 +13,6 @@ public class EventStoreCurrentEventsByPersistenceIdSpec : CurrentEventsByPersist
     public EventStoreCurrentEventsByPersistenceIdSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
         base(EventStoreConfiguration.Build(databaseFixture), nameof(EventStoreCurrentEventsByPersistenceIdSpec), output)
     {
-        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
 }

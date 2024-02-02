@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{2842D2F3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.EventStore.Hosting", "src\Akka.Persistence.EventStore.Hosting\Akka.Persistence.EventStore.Hosting.csproj", "{54F30A00-FBC7-4763-A2D9-86373158210B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.EventStore.Hosting.Tests", "src\Akka.Persistence.EventStore.Hosting.Tests\Akka.Persistence.EventStore.Hosting.Tests.csproj", "{8D28138D-C51A-491A-B5EA-028D725B6442}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,18 @@ Global
 		{54F30A00-FBC7-4763-A2D9-86373158210B}.Release|x64.Build.0 = Release|Any CPU
 		{54F30A00-FBC7-4763-A2D9-86373158210B}.Release|x86.ActiveCfg = Release|Any CPU
 		{54F30A00-FBC7-4763-A2D9-86373158210B}.Release|x86.Build.0 = Release|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Debug|x64.Build.0 = Debug|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Debug|x86.Build.0 = Debug|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Release|x64.ActiveCfg = Release|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Release|x64.Build.0 = Release|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Release|x86.ActiveCfg = Release|Any CPU
+		{8D28138D-C51A-491A-B5EA-028D725B6442}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

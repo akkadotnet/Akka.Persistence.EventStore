@@ -12,6 +12,6 @@ public class EventStorePersistenceIdsSpec : PersistenceIdsSpec, IClassFixture<Da
     public EventStorePersistenceIdsSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
         base(EventStoreConfiguration.Build(databaseFixture.Restart()), nameof(EventStorePersistenceIdsSpec), output)
     {
-        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStoreReadJournal.Identifier);
+        ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
 }
