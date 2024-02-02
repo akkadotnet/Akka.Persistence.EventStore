@@ -90,7 +90,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit, IClassFix
         
         var (cancelable, probe) = await Setup(streamName, 150);
 
-        probe.Request(151);
+        probe.Request(150);
 
         for (var i = 1; i <= 150; i++)
         {
