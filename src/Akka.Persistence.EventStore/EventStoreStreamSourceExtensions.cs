@@ -12,9 +12,9 @@ public static class EventStoreStreamSourceExtensions
         IMessageAdapter adapter)
     {
         return source
-            .Select(evnt =>
+            .SelectAsync(1, async evnt =>
             {
-                var message = adapter.AdaptEvent(evnt);
+                var message = await adapter.AdaptEvent(evnt);
 
                 return (Event: message, Position: evnt.Link?.EventNumber ?? evnt.OriginalEventNumber);
             })

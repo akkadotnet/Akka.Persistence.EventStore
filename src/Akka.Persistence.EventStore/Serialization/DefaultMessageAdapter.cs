@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Persistence.Journal;
 using EventStore.Client;
@@ -8,7 +9,7 @@ namespace Akka.Persistence.EventStore.Serialization;
 
 public class DefaultMessageAdapter(Akka.Serialization.Serialization serialization, string defaultSerializer) : IMessageAdapter
 {
-    public EventData Adapt(IPersistentRepresentation persistentMessage)
+    public async Task<EventData> Adapt(IPersistentRepresentation persistentMessage)
     {
         var payload = persistentMessage.Payload;
         IImmutableSet<string> tags = ImmutableHashSet<string>.Empty;
@@ -21,25 +22,25 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         
         persistentMessage = persistentMessage.WithPayload(payload).WithManifest(GetManifest(payload.GetType()));
 
-        var serializedBody = Serialize(payload);
-        var serializedMetadata = Serialize(GetEventMetadata(persistentMessage, tags));
+        var serializedBody = await Serialize(payload);
+        var serializedMetadata = await Serialize(GetEventMetadata(persistentMessage, tags));
         
         return new EventData(Uuid.NewUuid(), GetEventType(payload), serializedBody, serializedMetadata);
     }
 
-    public EventData Adapt(SnapshotMetadata snapshotMetadata, object snapshot)
+    public async Task<EventData> Adapt(SnapshotMetadata snapshotMetadata, object snapshot)
     {
         var metadata = GetSnapshotMetadata(snapshotMetadata, GetManifest(snapshot.GetType()));
 
-        var serializedBody = Serialize(snapshot);
-        var serializedMetadata = Serialize(metadata);
+        var serializedBody = await Serialize(snapshot);
+        var serializedMetadata = await Serialize(metadata);
 
         return new EventData(Uuid.NewUuid(), GetEventType(snapshot), serializedBody, serializedMetadata);
     }
 
-    public IPersistentRepresentation? AdaptEvent(ResolvedEvent evnt)
+    public async Task<IPersistentRepresentation?> AdaptEvent(ResolvedEvent evnt)
     {
-        var metadata = GetEventMetadataFrom(evnt);
+        var metadata = await GetEventMetadataFrom(evnt);
         
         if (metadata == null)
             return null;
@@ -52,7 +53,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         if (payloadType == null)
             return null;
         
-        var payload = DeSerialize(evnt.Event.Data.ToArray(), payloadType);
+        var payload = await DeSerialize(evnt.Event.Data.ToArray(), payloadType);
         
         if (payload == null)
             return null;
@@ -68,9 +69,9 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
             metadata.timestamp ?? 0);
     }
 
-    public SelectedSnapshot? AdaptSnapshot(ResolvedEvent evnt)
+    public async Task<SelectedSnapshot?> AdaptSnapshot(ResolvedEvent evnt)
     {
-        var metadata = GetSnapshotMetadataFrom(evnt);
+        var metadata = await GetSnapshotMetadataFrom(evnt);
 
         if (metadata == null)
             return null;
@@ -83,7 +84,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         if (payloadType == null)
             return null;
 
-        var payload = DeSerialize(evnt.Event.Data.ToArray(), payloadType);
+        var payload = await DeSerialize(evnt.Event.Data.ToArray(), payloadType);
 
         if (payload == null)
             return null;
@@ -98,18 +99,18 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return type.ToClrTypeName();
     }
 
-    protected virtual byte[] Serialize(object data)
+    protected virtual Task<ReadOnlyMemory<byte>> Serialize(object data)
     {
         var serializer = serialization.FindSerializerForType(data.GetType(), defaultSerializer);
 
-        return serializer.ToBinary(data);
+        return Task.FromResult(new ReadOnlyMemory<byte>(serializer.ToBinary(data)));
     }
 
-    protected virtual object? DeSerialize(byte[] data, Type type)
+    protected virtual Task<object?> DeSerialize(ReadOnlyMemory<byte> data, Type type)
     {
         var serializer = serialization.FindSerializerForType(type, defaultSerializer);
 
-        return serializer.FromBinary(data, type);
+        return Task.FromResult<object?>(serializer.FromBinary(data.ToArray(), type));
     }
     
     protected virtual string GetEventType(object data)
@@ -129,9 +130,9 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return new StoredEventMetadata(message, tags);
     }
 
-    protected virtual IStoredEventMetadata? GetEventMetadataFrom(ResolvedEvent evnt)
+    protected virtual async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
     {
-        var metadata = DeSerialize(evnt.Event.Metadata.ToArray(), typeof(StoredEventMetadata));
+        var metadata = await DeSerialize(evnt.Event.Metadata, typeof(StoredEventMetadata));
         
         return metadata as IStoredEventMetadata;
     }
@@ -143,9 +144,9 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return new StoredSnapshotMetadata(snapshotMetadata, manifest);
     }
 
-    protected virtual IStoredSnapshotMetadata? GetSnapshotMetadataFrom(ResolvedEvent evnt)
+    protected virtual async Task<IStoredSnapshotMetadata?> GetSnapshotMetadataFrom(ResolvedEvent evnt)
     {
-        var metadata = DeSerialize(evnt.Event.Metadata.ToArray(), typeof(StoredSnapshotMetadata));
+        var metadata = await DeSerialize(evnt.Event.Metadata, typeof(StoredSnapshotMetadata));
         
         return metadata as IStoredSnapshotMetadata;
     }

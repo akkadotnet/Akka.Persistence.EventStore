@@ -65,7 +65,7 @@ public class EventStoreSnapshotStore : SnapshotStore
 
         var events = await readResult.ToListAsync();
 
-        return events.Count == 0 ? null : _messageAdapter.AdaptSnapshot(events.First());
+        return events.Count == 0 ? null : await _messageAdapter.AdaptSnapshot(events.First());
     }
 
     protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot)
@@ -77,7 +77,7 @@ public class EventStoreSnapshotStore : SnapshotStore
             StreamState.Any,
             new List<EventData>
             {
-                _messageAdapter.Adapt(metadata, snapshot)
+                await _messageAdapter.Adapt(metadata, snapshot)
             });
 
         _log.Debug(
@@ -198,7 +198,7 @@ public class EventStoreSnapshotStore : SnapshotStore
             var snapshotResult = new SelectedSnapshotResult
             {
                 EventNumber = evnt.OriginalEventNumber.ToInt64(),
-                Snapshot = _messageAdapter.AdaptSnapshot(evnt)
+                Snapshot = await _messageAdapter.AdaptSnapshot(evnt)
             };
 
             if (snapshotResult.Snapshot == null)

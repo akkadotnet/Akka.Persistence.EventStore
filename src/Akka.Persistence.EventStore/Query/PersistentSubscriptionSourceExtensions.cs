@@ -27,7 +27,7 @@ public static class PersistentSubscriptionSourceExtensions
         IMessageAdapter adapter)
     {
         return source
-            .DeserializeWith(evnt => Task.FromResult(adapter.AdaptEvent(evnt)));
+            .DeserializeWith(adapter.AdaptEvent);
     }
     
     public record DeserializedEvent<TEvent>(

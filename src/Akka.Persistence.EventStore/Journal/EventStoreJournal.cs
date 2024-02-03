@@ -96,9 +96,9 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
             try
             {
-                var events = persistentMessages
+                var events = (await Task.WhenAll(persistentMessages
                     .Select(x => x.WithTimestamp(DateTime.UtcNow.Ticks))
-                    .Select(persistentMessage => _adapter.Adapt(persistentMessage))
+                    .Select(persistentMessage => _adapter.Adapt(persistentMessage))))
                     .ToImmutableList();
 
                 var pendingWrite = new

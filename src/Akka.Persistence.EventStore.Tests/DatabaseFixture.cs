@@ -97,8 +97,7 @@ public class DatabaseFixture : IAsyncLifetime
                     {
                         "EVENTSTORE_RUN_PROJECTIONS=All",
                         "EVENTSTORE_MEM_DB=True",
-                        "EVENTSTORE_INSECURE=True",
-                        "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=True"
+                        "EVENTSTORE_INSECURE=True"
                     },
                     HostConfig = new HostConfig
                     {

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Threading.Tasks;
 using Akka.Persistence.EventStore.Serialization;
 using EventStore.Client;
 
@@ -14,9 +15,9 @@ public class TestMessageAdapter(Akka.Serialization.Serialization serialization, 
         return new TestEventMetadata(message, tags);
     }
 
-    protected override IStoredEventMetadata? GetEventMetadataFrom(ResolvedEvent evnt)
+    protected override async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
     {
-        var metadata = DeSerialize(evnt.Event.Metadata.ToArray(), typeof(TestEventMetadata));
+        var metadata = await DeSerialize(evnt.Event.Metadata.ToArray(), typeof(TestEventMetadata));
         
         return metadata as IStoredEventMetadata;
     }
