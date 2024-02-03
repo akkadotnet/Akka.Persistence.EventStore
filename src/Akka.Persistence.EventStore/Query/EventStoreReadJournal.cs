@@ -46,8 +46,10 @@ public class EventStoreReadJournal
         string persistenceId,
         long fromSequenceNr,
         long toSequenceNr) => EventsFromStreamSource(
-        _writeSettings.GetStreamName(persistenceId),
-        EventStoreEventStreamFilter.FromPositionExclusive(fromSequenceNr, maxSequenceNumber: toSequenceNr),
+        EventStoreEventStreamFilter.FromPositionExclusive(
+            _writeSettings.GetStreamName(persistenceId),
+            fromSequenceNr, 
+            maxSequenceNumber: toSequenceNr),
         _settings.QueryRefreshInterval,
         false);
 
@@ -55,23 +57,22 @@ public class EventStoreReadJournal
         string persistenceId,
         long fromSequenceNr,
         long toSequenceNr) => EventsFromStreamSource(
-        persistenceId,
-        EventStoreEventStreamFilter.FromPositionExclusive(fromSequenceNr, maxSequenceNumber: toSequenceNr),
+        EventStoreEventStreamFilter.FromPositionExclusive(
+            _writeSettings.GetStreamName(persistenceId),
+            fromSequenceNr,
+            maxSequenceNumber: toSequenceNr),
         null,
         false);
 
     public Source<string, NotUsed> PersistenceIds()
     {
-        var filter = EventStoreEventStreamFilter.FromStart();
+        var filter = EventStoreEventStreamFilter.FromStart(_writeSettings.PersistenceIdsStreamName);
 
         return EventStoreSource
             .FromStream(
                 _eventStoreClient,
-                _writeSettings.PersistenceIdsStreamName,
-                filter.From,
-                filter.Direction,
-                _settings.QueryRefreshInterval,
-                false)
+                filter,
+                _settings.QueryRefreshInterval)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Select(r => r.Data.PersistenceId);
@@ -79,56 +80,45 @@ public class EventStoreReadJournal
 
     public Source<string, NotUsed> CurrentPersistenceIds()
     {
-        var filter = EventStoreEventStreamFilter.FromStart();
+        var filter = EventStoreEventStreamFilter.FromStart(_writeSettings.PersistenceIdsStreamName);
 
         return EventStoreSource
             .FromStream(
                 _eventStoreClient,
-                _writeSettings.PersistenceIdsStreamName,
-                filter.From,
-                filter.Direction,
-                null,
-                false,
-                TimeSpan.FromMilliseconds(300))
+                filter,
+                noEventGracePeriod: TimeSpan.FromMilliseconds(300))
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Select(r => r.Data.PersistenceId);
     }
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        $"{_writeSettings.TaggedStreamPrefix}{tag}",
-        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive($"{_writeSettings.TaggedStreamPrefix}{tag}", offset),
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        $"{_writeSettings.TaggedStreamPrefix}{tag}",
-        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive($"{_writeSettings.TaggedStreamPrefix}{tag}", offset),
         null,
         true);
 
     public Source<EventEnvelope, NotUsed> AllEvents(Offset offset) => EventsFromStreamSource(
-        _writeSettings.PersistedEventsStreamName,
-        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(_writeSettings.PersistedEventsStreamName, offset),
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentAllEvents(Offset offset) => EventsFromStreamSource(
-        _writeSettings.PersistedEventsStreamName,
-        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(_writeSettings.PersistedEventsStreamName, offset),
         null,
         true);
 
     private Source<EventEnvelope, NotUsed> EventsFromStreamSource(
-        string streamName,
         EventStoreEventStreamFilter filter,
         TimeSpan? refreshInterval,
         bool resolveLinkTos) => EventStoreSource
         .FromStream(
             _eventStoreClient,
-            streamName,
-            filter.From,
-            filter.Direction,
+            filter,
             refreshInterval,
             resolveLinkTos,
             TimeSpan.FromMilliseconds(300))

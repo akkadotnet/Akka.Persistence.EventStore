@@ -36,14 +36,10 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
     public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr)
     {
-        var filter = EventStoreEventStreamFilter.FromEnd(fromSequenceNr);
+        var filter = EventStoreEventStreamFilter.FromEnd(_settings.GetStreamName(persistenceId), fromSequenceNr);
         
         var lastMessage = await EventStoreSource
-            .FromStream(
-                _eventStoreClient,
-                _settings.GetStreamName(persistenceId),
-                filter.From,
-                filter.Direction)
+            .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Take(1)
@@ -65,14 +61,14 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         long max,
         Action<IPersistentRepresentation> recoveryCallback)
     {
-        var filter = EventStoreEventStreamFilter.FromPositionInclusive(fromSequenceNr, fromSequenceNr, toSequenceNr);
+        var filter = EventStoreEventStreamFilter.FromPositionInclusive(
+            _settings.GetStreamName(persistenceId),
+            fromSequenceNr, 
+            fromSequenceNr,
+            toSequenceNr);
         
         await EventStoreSource
-            .FromStream(
-                _eventStoreClient,
-                _settings.GetStreamName(persistenceId),
-                filter.From,
-                filter.Direction)
+            .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Take(n: max)
@@ -123,16 +119,10 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     {
         var streamName = _settings.GetStreamName(persistenceId);
 
-        var filter = EventStoreEventStreamFilter.FromEnd(maxSequenceNumber: toSequenceNr);
+        var filter = EventStoreEventStreamFilter.FromEnd(streamName, maxSequenceNumber: toSequenceNr);
         
         var lastMessage = await EventStoreSource
-            .FromStream(
-                _eventStoreClient,
-                streamName,
-                filter.From,
-                filter.Direction, 
-                null,
-                false)
+            .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Take(1)

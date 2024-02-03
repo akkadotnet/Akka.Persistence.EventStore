@@ -13,9 +13,7 @@ public static class EventStoreSource
 {
     public static Source<ResolvedEvent, NotUsed> FromStream(
         EventStoreClient client,
-        string streamName,
-        StreamPosition startFrom,
-        Direction direction,
+        IEventStoreStreamOrigin from,
         TimeSpan? refreshInterval = null,
         bool resolveLinkTos = false,
         TimeSpan? noEventGracePeriod = null)
@@ -24,13 +22,13 @@ public static class EventStoreSource
 
         async IAsyncEnumerable<ResolvedEvent> StartIterator()
         {
-            var startPosition = startFrom;
+            var startPosition = from.From;
             
             while (true)
             {
                 var readResult = client.ReadStreamAsync(
-                    direction,
-                    streamName,
+                    from.Direction,
+                    from.StreamName,
                     startPosition,
                     resolveLinkTos: resolveLinkTos);
 

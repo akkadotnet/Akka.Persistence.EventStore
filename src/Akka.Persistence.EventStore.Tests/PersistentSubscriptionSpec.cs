@@ -189,6 +189,8 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit, IClassFix
         
         await probe.ExpectCompleteAsync();
 
+        await Task.Delay(TimeSpan.FromMicroseconds(500));
+
         var subscriptionAfterCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 
         subscriptionAfterCancel.Connections.Should().HaveCount(0);

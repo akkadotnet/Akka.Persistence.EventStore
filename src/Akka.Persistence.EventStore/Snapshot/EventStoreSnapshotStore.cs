@@ -98,16 +98,13 @@ public class EventStoreSnapshotStore : SnapshotStore
             return null;
         
         var filter = new EventStoreSnapshotStreamFilter(
+            streamName,
             StreamPosition.End,
             Direction.Backwards,
             criteria);
 
         return await EventStoreSource
-            .FromStream(
-                _eventStoreClient,
-                streamName,
-                filter.From,
-                filter.Direction)
+            .FromStream(_eventStoreClient, filter)
             .DeSerializeSnapshotWith(_messageAdapter)
             .Filter(filter)
             .Take(1)

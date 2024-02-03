@@ -3,9 +3,10 @@ using EventStore.Client;
 namespace Akka.Persistence.EventStore.Streams;
 
 public record EventStoreSnapshotStreamFilter(
+    string StreamName,
     StreamPosition From,
     Direction Direction,
-    SnapshotSelectionCriteria Criteria) : IEventStoreStreamFilter<SelectedSnapshot>
+    SnapshotSelectionCriteria Criteria) : IEventStoreStreamFilter<SelectedSnapshot>, IEventStoreStreamOrigin
 {
     public StreamContinuation Filter(SelectedSnapshot snapshot)
     {
@@ -49,6 +50,16 @@ public record EventStoreSnapshotStreamFilter(
             };
         }
 
-        return StreamContinuation.Include;
+        return IsLast(snapshot) ? StreamContinuation.IncludeThenComplete : StreamContinuation.Include;
+    }
+
+    private bool IsLast(SelectedSnapshot snapshot)
+    {
+        if (Direction == Direction.Forwards)
+        {
+            return snapshot.Metadata.SequenceNr == Criteria.MaxSequenceNr;
+        }
+
+        return snapshot.Metadata.SequenceNr == Criteria.MinSequenceNr;
     }
 }
