@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Akka.Configuration;
 using Akka.Event;
@@ -21,6 +22,8 @@ namespace Akka.Persistence.EventStore.Journal;
 
 public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 {
+    private const string LastSequenceNumberMetaDataKey = "lastSeq";
+    
     private readonly EventStoreJournalSettings _settings;
     private readonly ILoggingAdapter _log;
     
@@ -50,7 +53,17 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
         var metadata = await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId));
 
-        return metadata.Metadata.TruncateBefore?.ToInt64() ?? 0;
+        var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
+                             new Dictionary<string, object>();
+
+        var sequenceNumberFromMetaData = customMetaData.TryGetValue(LastSequenceNumberMetaDataKey, out var lastSeqObj) && lastSeqObj is JsonElement lastSeqElem &&
+               lastSeqElem.TryGetInt64(out var lastSeq)
+            ? (long?)lastSeq
+            : null;
+        
+        return sequenceNumberFromMetaData > fromSequenceNr
+            ? sequenceNumberFromMetaData.Value
+            : 0;
     }
 
     public override async Task ReplayMessagesAsync(
@@ -131,7 +144,12 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         if (lastMessage != null)
         {
             var metadata = await _eventStoreClient.GetStreamMetadataAsync(streamName);
-            
+
+            var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
+                                 new Dictionary<string, object>();
+
+            customMetaData[LastSequenceNumberMetaDataKey] = JsonSerializer.SerializeToElement(lastMessage.Data.SequenceNr);
+
             await _eventStoreClient
                 .SetStreamMetadataAsync(
                     streamName,
@@ -142,7 +160,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                         lastMessage.Position + 1,
                         metadata.Metadata.CacheControl,
                         metadata.Metadata.Acl,
-                        metadata.Metadata.CustomMetadata));
+                        JsonSerializer.SerializeToDocument(customMetaData)));
         }
     }
 
