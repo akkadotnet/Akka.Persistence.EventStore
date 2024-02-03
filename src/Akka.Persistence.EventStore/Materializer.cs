@@ -4,9 +4,9 @@ using Akka.Streams;
 using Akka.Streams.Implementation;
 using Akka.Util;
 
-namespace Akka.Persistence.EventStore.Query;
+namespace Akka.Persistence.EventStore;
 
-public static class Materializer
+internal static class Materializer
 {
     private static ActorSystem ActorSystemOf(IActorRefFactory context)
     {

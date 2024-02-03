@@ -2,8 +2,7 @@ using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Akka.Actor;
-using Akka.Persistence.EventStore.Query;
-using Akka.Persistence.Query;
+using Akka.Persistence.EventStore.Streams;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.Streams.TestKit;
@@ -216,13 +215,13 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit, IClassFix
                         $"{streamName}-{i}",
                         "{}"u8.ToArray())));
         }
-        
-        var queries = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
 
-        var stream = queries.PersistentSubscription(
-            streamName,
-            streamName,
-            restartWith: restartWith);
+        var stream = EventStoreSource
+            .ForPersistentSubscription(
+                _subscriptionClient,
+                streamName,
+                streamName,
+                restartWith: restartWith);
         
         return stream.ToMaterialized(this.SinkProbe<PersistentSubscriptionMessage>(), Keep.Both).Run(Sys.Materializer());
     }

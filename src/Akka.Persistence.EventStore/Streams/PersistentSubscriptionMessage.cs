@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using EventStore.Client;
 
-namespace Akka.Persistence.EventStore.Query;
+namespace Akka.Persistence.EventStore.Streams;
 
 public record PersistentSubscriptionMessage(
     ResolvedEvent Event,

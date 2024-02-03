@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
 using Akka.Actor;
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Serialization;
+using Akka.Persistence.EventStore.Streams;
 using Akka.Persistence.Journal;
 using Akka.Persistence.Query;
-using Akka.Streams;
 using Akka.Streams.Dsl;
 using EventStore.Client;
 
@@ -25,57 +24,22 @@ public class EventStoreReadJournal
         ICurrentAllEventsQuery
 {
     private readonly EventAdapters _eventAdapters;
-    private readonly EventStoreDataSource _eventStoreDataSource;
     private readonly EventStoreReadJournalSettings _settings;
     private readonly EventStoreJournalSettings _writeSettings;
-    private readonly EventStorePersistentSubscriptionsClient _subscriptionsClient;
     private readonly IMessageAdapter _adapter;
+    private readonly EventStoreClient _eventStoreClient;
 
     public EventStoreReadJournal(ActorSystem system, Config config)
     {
         _settings = new EventStoreReadJournalSettings(config);
-        
+
         _eventAdapters = Persistence.Instance.Apply(system).AdaptersFor(_settings.WritePlugin);
 
         _writeSettings = new EventStoreJournalSettings(system.Settings.Config.GetConfig(_settings.WritePlugin));
-
-        var clientSettings = EventStoreClientSettings.Create(_writeSettings.ConnectionString);
         
-        _subscriptionsClient = new EventStorePersistentSubscriptionsClient(clientSettings);
-
         _adapter = _writeSettings.FindEventAdapter(system);
-        
-        _eventStoreDataSource = new EventStoreDataSource(
-            new EventStoreClient(EventStoreClientSettings.Create(_writeSettings.ConnectionString)));
-    }
-    
-    public Source<PersistentSubscriptionMessage, ICancelable> PersistentSubscription(
-        string streamName,
-        string groupName,
-        int maxBufferSize = 500,
-        RestartSettings? restartWith = null)
-    {
-        ICancelable cancelable = new Cancelable();
 
-        if (restartWith != null)
-        {
-            return RestartSource
-                .OnFailuresWithBackoff(Create, restartWith)
-                .MapMaterializedValue(_ => cancelable);
-        }
-
-        return Create()
-            .MapMaterializedValue(_ => cancelable);
-        
-        Source<PersistentSubscriptionMessage, NotUsed> Create()
-        {
-            return Source.From(() => new EventStorePersistentSubscriptionEnumerable(
-                    streamName,
-                    groupName,
-                    _subscriptionsClient,
-                    maxBufferSize,
-                    cancelable.Token));
-        }
+        _eventStoreClient = new EventStoreClient(EventStoreClientSettings.Create(_writeSettings.ConnectionString));
     }
 
     public Source<EventEnvelope, NotUsed> EventsByPersistenceId(
@@ -86,7 +50,7 @@ public class EventStoreReadJournal
         EventStoreQueryFilter.FromPositionExclusive(fromSequenceNr, maxSequenceNumber: toSequenceNr),
         _settings.QueryRefreshInterval,
         false);
-    
+
     public Source<EventEnvelope, NotUsed> CurrentEventsByPersistenceId(
         string persistenceId,
         long fromSequenceNr,
@@ -99,9 +63,10 @@ public class EventStoreReadJournal
     public Source<string, NotUsed> PersistenceIds()
     {
         var filter = EventStoreQueryFilter.FromStart();
-        
-        return _eventStoreDataSource
-            .Messages(
+
+        return EventStoreSource
+            .FromStream(
+                _eventStoreClient,
                 _writeSettings.PersistenceIdsStreamName,
                 filter.From,
                 filter.Direction,
@@ -115,9 +80,10 @@ public class EventStoreReadJournal
     public Source<string, NotUsed> CurrentPersistenceIds()
     {
         var filter = EventStoreQueryFilter.FromStart();
-        
-        return _eventStoreDataSource
-            .Messages(
+
+        return EventStoreSource
+            .FromStream(
+                _eventStoreClient,
                 _writeSettings.PersistenceIdsStreamName,
                 filter.From,
                 filter.Direction,
@@ -131,7 +97,7 @@ public class EventStoreReadJournal
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
         $"{_writeSettings.TaggedStreamPrefix}{tag}",
-        EventStoreQueryFilter.FromOffsetExclusive(offset), 
+        EventStoreQueryFilter.FromOffsetExclusive(offset),
         _settings.QueryRefreshInterval,
         true);
 
@@ -157,8 +123,15 @@ public class EventStoreReadJournal
         string streamName,
         EventStoreQueryFilter filter,
         TimeSpan? refreshInterval,
-        bool resolveLinkTos) => _eventStoreDataSource
-        .Messages(streamName, filter.From, filter.Direction, refreshInterval, resolveLinkTos, TimeSpan.FromMilliseconds(300))
+        bool resolveLinkTos) => EventStoreSource
+        .FromStream(
+            _eventStoreClient,
+            streamName,
+            filter.From,
+            filter.Direction,
+            refreshInterval,
+            resolveLinkTos,
+            TimeSpan.FromMilliseconds(300))
         .DeSerializeEvents(_adapter)
         .Filter(filter)
         .SelectMany(r =>
@@ -182,32 +155,4 @@ public class EventStoreReadJournal
             .Events
             .Select(persistentRepresentation.WithPayload)
             .ToImmutableList();
-    
-    private class Cancelable : ICancelable
-    {
-        private readonly CancellationTokenSource _cancellationTokenSource = new();
-        
-        public bool IsCancellationRequested => _cancellationTokenSource.IsCancellationRequested;
-        public CancellationToken Token => _cancellationTokenSource.Token;
-        
-        public void Cancel()
-        {
-            _cancellationTokenSource.Cancel();
-        }
-
-        public void CancelAfter(TimeSpan delay)
-        {
-            _cancellationTokenSource.CancelAfter(delay);
-        }
-
-        public void CancelAfter(int millisecondsDelay)
-        {
-            _cancellationTokenSource.CancelAfter(millisecondsDelay);
-        }
-
-        public void Cancel(bool throwOnFirstException)
-        {
-            _cancellationTokenSource.Cancel(throwOnFirstException);
-        }
-    }
 }

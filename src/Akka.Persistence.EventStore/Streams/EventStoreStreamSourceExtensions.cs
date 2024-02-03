@@ -3,7 +3,7 @@ using Akka.Persistence.EventStore.Serialization;
 using Akka.Streams.Dsl;
 using EventStore.Client;
 
-namespace Akka.Persistence.EventStore;
+namespace Akka.Persistence.EventStore.Streams;
 
 public static class EventStoreStreamSourceExtensions
 {

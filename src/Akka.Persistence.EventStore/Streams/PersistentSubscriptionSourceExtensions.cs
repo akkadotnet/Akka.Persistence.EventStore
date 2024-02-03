@@ -5,7 +5,7 @@ using Akka.Persistence.EventStore.Serialization;
 using Akka.Streams.Dsl;
 using EventStore.Client;
 
-namespace Akka.Persistence.EventStore.Query;
+namespace Akka.Persistence.EventStore.Streams;
 
 public static class PersistentSubscriptionSourceExtensions
 {

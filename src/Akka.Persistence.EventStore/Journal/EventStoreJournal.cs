@@ -11,6 +11,7 @@ using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Projections;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.EventStore.Serialization;
+using Akka.Persistence.EventStore.Streams;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.Streams.Implementation.Stages;
@@ -25,7 +26,6 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     
     private EventStoreClient _eventStoreClient = null!;
     private IMessageAdapter _adapter = null!;
-    private EventStoreDataSource _eventStoreDataSource = null!;
     private ActorMaterializer _mat = null!;
     
     public EventStoreJournal(Config journalConfig)
@@ -38,8 +38,9 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     {
         var filter = EventStoreQueryFilter.FromEnd(fromSequenceNr);
         
-        var lastMessage = await _eventStoreDataSource
-            .Messages(
+        var lastMessage = await EventStoreSource
+            .FromStream(
+                _eventStoreClient,
                 _settings.GetStreamName(persistenceId),
                 filter.From,
                 filter.Direction,
@@ -68,8 +69,9 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     {
         var filter = EventStoreQueryFilter.FromPositionInclusive(fromSequenceNr, fromSequenceNr, toSequenceNr);
         
-        await _eventStoreDataSource
-            .Messages(
+        await EventStoreSource
+            .FromStream(
+                _eventStoreClient,
                 _settings.GetStreamName(persistenceId),
                 filter.From,
                 filter.Direction,
@@ -147,8 +149,9 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
         var filter = EventStoreQueryFilter.FromEnd(maxSequenceNumber: toSequenceNr);
         
-        var lastMessage = await _eventStoreDataSource
-            .Messages(
+        var lastMessage = await EventStoreSource
+            .FromStream(
+                _eventStoreClient,
                 streamName,
                 filter.From,
                 filter.Direction, 
@@ -222,8 +225,6 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             _eventStoreClient = new EventStoreClient(eventStoreClientSettings);
 
             _adapter = _settings.FindEventAdapter(Context.System);
-
-            _eventStoreDataSource = new EventStoreDataSource(_eventStoreClient);
             
             _mat = Materializer.CreateSystemMaterializer(
                 context: (ExtendedActorSystem)Context.System,

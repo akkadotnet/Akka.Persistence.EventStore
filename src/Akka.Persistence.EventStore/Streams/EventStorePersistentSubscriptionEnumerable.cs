@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Akka.Persistence.EventStore.Query;
 using EventStore.Client;
 
-namespace Akka.Persistence.EventStore.Query;
+namespace Akka.Persistence.EventStore.Streams;
 
 public class EventStorePersistentSubscriptionEnumerable(
     string streamName,
