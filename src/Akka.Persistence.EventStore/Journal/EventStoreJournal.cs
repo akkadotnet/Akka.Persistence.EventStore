@@ -145,6 +145,11 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         {
             var metadata = await _eventStoreClient.GetStreamMetadataAsync(streamName);
 
+            var truncatePosition = lastMessage.Position + 1;
+            
+            if (metadata.Metadata.TruncateBefore != null && metadata.Metadata.TruncateBefore >= truncatePosition)
+                return;
+            
             var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
                                  new Dictionary<string, object>();
 
@@ -157,7 +162,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                     new StreamMetadata(
                         metadata.Metadata.MaxCount,
                         metadata.Metadata.MaxAge,
-                        lastMessage.Position + 1,
+                        truncatePosition,
                         metadata.Metadata.CacheControl,
                         metadata.Metadata.Acl,
                         JsonSerializer.SerializeToDocument(customMetaData)));
