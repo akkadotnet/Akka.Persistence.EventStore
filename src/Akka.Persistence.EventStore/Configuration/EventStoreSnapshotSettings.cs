@@ -20,12 +20,14 @@ public class EventStoreSnapshotSettings : ISettingsWithAdapter
         Adapter = config.GetString("adapter", "default");
         StreamPrefix = config.GetString("prefix", "snapshot@");
         DefaultSerializer = config.GetString("serializer");
+        MaterializerDispatcher = config.GetString("materializer-dispatcher", "akka.actor.default-dispatcher");
     }
 
     public string ConnectionString { get; }
     public string Adapter { get; }
     public string DefaultSerializer { get; }
     public string StreamPrefix { get; }
+    public string MaterializerDispatcher { get; }
     
     public string GetStreamName(string persistenceId)
     {

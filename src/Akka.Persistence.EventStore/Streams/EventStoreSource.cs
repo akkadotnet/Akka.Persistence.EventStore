@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Akka.Actor;
-using Akka.Persistence.EventStore.Query;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using EventStore.Client;
@@ -17,8 +16,8 @@ public static class EventStoreSource
         string streamName,
         StreamPosition startFrom,
         Direction direction,
-        TimeSpan? refreshInterval,
-        bool resolveLinkTos,
+        TimeSpan? refreshInterval = null,
+        bool resolveLinkTos = false,
         TimeSpan? noEventGracePeriod = null)
     {
         return Source.From(StartIterator);

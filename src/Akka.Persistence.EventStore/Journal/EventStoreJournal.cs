@@ -36,23 +36,21 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
     public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr)
     {
-        var filter = EventStoreQueryFilter.FromEnd(fromSequenceNr);
+        var filter = EventStoreEventStreamFilter.FromEnd(fromSequenceNr);
         
         var lastMessage = await EventStoreSource
             .FromStream(
                 _eventStoreClient,
                 _settings.GetStreamName(persistenceId),
                 filter.From,
-                filter.Direction,
-                null,
-                false)
-            .DeSerializeEvents(_adapter)
+                filter.Direction)
+            .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Take(1)
-            .RunWith(new FirstOrDefault<ReplayCompletion>(), _mat);
+            .RunWith(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), _mat);
 
         if (lastMessage != null)
-            return lastMessage.Event.SequenceNr;
+            return lastMessage.Data.SequenceNr;
 
         var metadata = await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId));
 
@@ -67,20 +65,18 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         long max,
         Action<IPersistentRepresentation> recoveryCallback)
     {
-        var filter = EventStoreQueryFilter.FromPositionInclusive(fromSequenceNr, fromSequenceNr, toSequenceNr);
+        var filter = EventStoreEventStreamFilter.FromPositionInclusive(fromSequenceNr, fromSequenceNr, toSequenceNr);
         
         await EventStoreSource
             .FromStream(
                 _eventStoreClient,
                 _settings.GetStreamName(persistenceId),
                 filter.From,
-                filter.Direction,
-                null,
-                false)
-            .DeSerializeEvents(_adapter)
+                filter.Direction)
+            .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Take(n: max)
-            .RunForeach(r => recoveryCallback(r.Event), _mat);
+            .RunForeach(r => recoveryCallback(r.Data), _mat);
     }
 
     protected override async Task<IImmutableList<Exception?>> WriteMessagesAsync(
@@ -98,41 +94,21 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
             try
             {
-                var events = (await Task.WhenAll(persistentMessages
-                    .Select(x => x.WithTimestamp(DateTime.UtcNow.Ticks))
-                    .Select(persistentMessage => _adapter.Adapt(persistentMessage))))
-                    .ToImmutableList();
-
-                var pendingWrite = new
-                {
-                    StreamId = _settings.GetStreamName(persistenceId),
-                    ExpectedSequenceId = lowSequenceId,
-                    EventData = events,
-                    debugData = persistentMessages
-                };
-
-                var expectedVersion = pendingWrite.ExpectedSequenceId < 0
+                var expectedVersion = lowSequenceId < 0
                     ? StreamRevision.None
-                    : StreamRevision.FromInt64(pendingWrite.ExpectedSequenceId);
-
-                var writeResult = await _eventStoreClient.AppendToStreamAsync(
-                    pendingWrite.StreamId,
-                    expectedVersion,
-                    pendingWrite.EventData);
-
-                var error = writeResult switch
-                {
-                    SuccessResult => null,
-
-                    WrongExpectedVersionResult wrongExpectedVersionResult => new WrongExpectedVersionException(
-                        pendingWrite.StreamId,
-                        expectedVersion,
-                        wrongExpectedVersionResult.ActualStreamRevision),
-
-                    _ => new Exception("Unknown error when writing to EventStore")
-                };
-
-                results.Add(error);
+                    : StreamRevision.FromInt64(lowSequenceId);
+                
+                await Source.From(persistentMessages
+                    .Select(x => x.WithTimestamp(DateTime.UtcNow.Ticks)))
+                    .SerializeWith(_adapter)
+                    .Grouped(persistentMessages.Count)
+                    .Select(x => new EventStoreWrite(
+                        _settings.GetStreamName(persistenceId),
+                        x.ToImmutableList(),
+                        expectedVersion))
+                    .RunWith(EventStoreSink.Create(_eventStoreClient), _mat);
+                
+                results.Add(null);
             }
             catch (Exception e)
             {
@@ -147,7 +123,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     {
         var streamName = _settings.GetStreamName(persistenceId);
 
-        var filter = EventStoreQueryFilter.FromEnd(maxSequenceNumber: toSequenceNr);
+        var filter = EventStoreEventStreamFilter.FromEnd(maxSequenceNumber: toSequenceNr);
         
         var lastMessage = await EventStoreSource
             .FromStream(
@@ -157,10 +133,10 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                 filter.Direction, 
                 null,
                 false)
-            .DeSerializeEvents(_adapter)
+            .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Take(1)
-            .RunWith(new FirstOrDefault<ReplayCompletion>(), _mat);
+            .RunWith(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), _mat);
 
         if (lastMessage != null)
         {

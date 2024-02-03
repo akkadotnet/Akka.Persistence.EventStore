@@ -47,7 +47,7 @@ public class EventStoreReadJournal
         long fromSequenceNr,
         long toSequenceNr) => EventsFromStreamSource(
         _writeSettings.GetStreamName(persistenceId),
-        EventStoreQueryFilter.FromPositionExclusive(fromSequenceNr, maxSequenceNumber: toSequenceNr),
+        EventStoreEventStreamFilter.FromPositionExclusive(fromSequenceNr, maxSequenceNumber: toSequenceNr),
         _settings.QueryRefreshInterval,
         false);
 
@@ -56,13 +56,13 @@ public class EventStoreReadJournal
         long fromSequenceNr,
         long toSequenceNr) => EventsFromStreamSource(
         persistenceId,
-        EventStoreQueryFilter.FromPositionExclusive(fromSequenceNr, maxSequenceNumber: toSequenceNr),
+        EventStoreEventStreamFilter.FromPositionExclusive(fromSequenceNr, maxSequenceNumber: toSequenceNr),
         null,
         false);
 
     public Source<string, NotUsed> PersistenceIds()
     {
-        var filter = EventStoreQueryFilter.FromStart();
+        var filter = EventStoreEventStreamFilter.FromStart();
 
         return EventStoreSource
             .FromStream(
@@ -72,14 +72,14 @@ public class EventStoreReadJournal
                 filter.Direction,
                 _settings.QueryRefreshInterval,
                 false)
-            .DeSerializeEvents(_adapter)
+            .DeSerializeEventWith(_adapter)
             .Filter(filter)
-            .Select(r => r.Event.PersistenceId);
+            .Select(r => r.Data.PersistenceId);
     }
 
     public Source<string, NotUsed> CurrentPersistenceIds()
     {
-        var filter = EventStoreQueryFilter.FromStart();
+        var filter = EventStoreEventStreamFilter.FromStart();
 
         return EventStoreSource
             .FromStream(
@@ -90,38 +90,38 @@ public class EventStoreReadJournal
                 null,
                 false,
                 TimeSpan.FromMilliseconds(300))
-            .DeSerializeEvents(_adapter)
+            .DeSerializeEventWith(_adapter)
             .Filter(filter)
-            .Select(r => r.Event.PersistenceId);
+            .Select(r => r.Data.PersistenceId);
     }
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
         $"{_writeSettings.TaggedStreamPrefix}{tag}",
-        EventStoreQueryFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset) => EventsFromStreamSource(
         $"{_writeSettings.TaggedStreamPrefix}{tag}",
-        EventStoreQueryFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
         null,
         true);
 
     public Source<EventEnvelope, NotUsed> AllEvents(Offset offset) => EventsFromStreamSource(
         _writeSettings.PersistedEventsStreamName,
-        EventStoreQueryFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentAllEvents(Offset offset) => EventsFromStreamSource(
         _writeSettings.PersistedEventsStreamName,
-        EventStoreQueryFilter.FromOffsetExclusive(offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(offset),
         null,
         true);
 
     private Source<EventEnvelope, NotUsed> EventsFromStreamSource(
         string streamName,
-        EventStoreQueryFilter filter,
+        EventStoreEventStreamFilter filter,
         TimeSpan? refreshInterval,
         bool resolveLinkTos) => EventStoreSource
         .FromStream(
@@ -132,11 +132,11 @@ public class EventStoreReadJournal
             refreshInterval,
             resolveLinkTos,
             TimeSpan.FromMilliseconds(300))
-        .DeSerializeEvents(_adapter)
+        .DeSerializeEventWith(_adapter)
         .Filter(filter)
         .SelectMany(r =>
-            AdaptEvents(r.Event)
-                .Select(_ => new { representation = r.Event, ordering = r.Position }))
+            AdaptEvents(r.Data)
+                .Select(_ => new { representation = r.Data, ordering = r.Position }))
         .Select(
             r =>
                 new EventEnvelope(

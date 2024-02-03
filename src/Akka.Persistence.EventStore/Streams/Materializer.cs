@@ -4,7 +4,7 @@ using Akka.Streams;
 using Akka.Streams.Implementation;
 using Akka.Util;
 
-namespace Akka.Persistence.EventStore;
+namespace Akka.Persistence.EventStore.Streams;
 
 internal static class Materializer
 {
