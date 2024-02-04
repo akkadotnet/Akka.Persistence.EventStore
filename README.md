@@ -148,7 +148,6 @@ This will run the snapshot store with its default settings. The default settings
 #### Configuration
 - `connection-string` - Connection string, as described here: https://developers.eventstore.com/clients/grpc/#connection-string.
 - `adapter ` - Controls how the event data and metadata is stored and retrieved. See Adapter section below for more information.
-- `auto-initialize` - Whether or not the plugin should create projections to support read journal on startup. See Projections section below for more information.
 - `prefix` - A optional prefix that will be added to streams.
 - `tenant` - A optional tenant that should be used to support multi-tenant environments.
 
@@ -201,6 +200,12 @@ To use standard queries please refer to documentation about [Persistence Query](
 To support the Read Journal the plugin takes advantage of the [projections](https://developers.eventstore.com/server/v23.10/projections.html#introduction) feature
 of EventStoreDB. If you setup `auto-initialize` on the Journal the required projections will be created for you on startup. You can also use `Akka.Persistence.EventStore.Projections.EventStoreProjectionsSetup`
 to create the projections yourself if you want.
+
+## Breaking Changes in 1.5
+
+1. The legacy adapter has been removed.
+2. The default adapter will now use the serializer used by akka.
+3. The query plugin has been changed to use eventstore projections that needs to be created.
 
 ## Breaking Changes in 1.4
 
