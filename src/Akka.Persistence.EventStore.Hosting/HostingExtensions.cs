@@ -14,11 +14,13 @@ public static class HostingExtensions
         bool autoInitialize = false,
         string pluginIdentifier = "eventstore",
         bool isDefaultPlugin = true,
+        string? tenant = null,
         string? snapshotStreamPrefix = null,
         string? journalStreamPrefix = null,
-        string? taggedJournalStreamPrefix = null,
+        string? taggedJournalStreamPattern = null,
         string? persistenceIdsStreamName = null,
-        string? persistedEventsStreamName = null)
+        string? persistedEventsStreamName = null,
+        string? tenantStreamNamePattern = null)
     {
         if (mode == PersistenceMode.SnapshotStore && journalBuilder is not null)
             throw new Exception($"{nameof(journalBuilder)} can only be set when {nameof(mode)} is set to either {PersistenceMode.Both} or {PersistenceMode.Journal}");
@@ -32,9 +34,10 @@ public static class HostingExtensions
             AutoInitialize = autoInitialize,
             Adapter = adapter,
             StreamPrefix = journalStreamPrefix,
-            TaggedStreamPrefix = taggedJournalStreamPrefix,
+            TaggedStreamNamePattern = taggedJournalStreamPattern,
             PersistedEventsStreamName = persistedEventsStreamName,
-            PersistenceIdsStreamName = persistenceIdsStreamName
+            PersistenceIdsStreamName = persistenceIdsStreamName,
+            Tenant = tenant
         };
         
         var adapters = new AkkaPersistenceJournalBuilder(journalOptions.Identifier, builder);
@@ -48,14 +51,19 @@ public static class HostingExtensions
             ConnectionString = connectionString,
             AutoInitialize = autoInitialize,
             Adapter = adapter,
-            Prefix = snapshotStreamPrefix
+            Prefix = snapshotStreamPrefix,
+            Tenant = tenant
         };
+
+        var tenantOptions = !string.IsNullOrEmpty(tenantStreamNamePattern)
+            ? new EventStoreTenantOptions(tenantStreamNamePattern)
+            : null;
 
         return mode switch
         {
-            PersistenceMode.Journal => builder.WithEventStorePersistence(journalOptions),
-            PersistenceMode.SnapshotStore => builder.WithEventStorePersistence(null, snapshotOptions),
-            PersistenceMode.Both => builder.WithEventStorePersistence(journalOptions, snapshotOptions),
+            PersistenceMode.Journal => builder.WithEventStorePersistence(journalOptions, tenantOptions: tenantOptions),
+            PersistenceMode.SnapshotStore => builder.WithEventStorePersistence(null, snapshotOptions, tenantOptions),
+            PersistenceMode.Both => builder.WithEventStorePersistence(journalOptions, snapshotOptions, tenantOptions),
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Invalid PersistenceMode defined."),
         };
     }
@@ -63,9 +71,10 @@ public static class HostingExtensions
     public static AkkaConfigurationBuilder WithEventStorePersistence(
         this AkkaConfigurationBuilder builder,
         EventStoreJournalOptions? journalOptions = null,
-        EventStoreSnapshotOptions? snapshotOptions = null)
+        EventStoreSnapshotOptions? snapshotOptions = null,
+        EventStoreTenantOptions? tenantOptions = null)
     {
-        return (journalOptions, snapshotOptions) switch
+        var config = (journalOptions, snapshotOptions) switch
         {
             (null, null) =>
                 throw new ArgumentException($"{nameof(journalOptions)} and {nameof(snapshotOptions)} could not both be null"),
@@ -89,5 +98,10 @@ public static class HostingExtensions
                     .AddHocon(snapshotOptions.DefaultConfig, HoconAddMode.Append)
                     .AddHocon(journalOptions.DefaultQueryConfig, HoconAddMode.Append)
         };
+        
+        if (tenantOptions != null)
+            config = config.AddHocon(tenantOptions.ToConfig(), HoconAddMode.Prepend);
+
+        return config;
     }
 }

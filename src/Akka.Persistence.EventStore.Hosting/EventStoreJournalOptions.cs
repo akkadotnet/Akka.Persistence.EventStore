@@ -19,10 +19,11 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
     public string? ConnectionString { get; set; }
     public string? Adapter { get; set; }
     public string? StreamPrefix { get; set; }
-    public string? TaggedStreamPrefix { get; set; }
+    public string? TaggedStreamNamePattern { get; set; }
     public string? PersistenceIdsStreamName { get; set; }
     public string? PersistedEventsStreamName { get; set; }
     public TimeSpan? QueryRefreshInterval { get; set; }
+    public string? Tenant { get; set; }
     public override string Identifier { get; set; } = identifier;
     public Config DefaultQueryConfig => DefaultQuery.MoveTo(QueryPluginId);
     protected override Config InternalDefaultConfig => Default;
@@ -41,14 +42,17 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
         if (!string.IsNullOrEmpty(StreamPrefix))
             sb.AppendLine($"prefix = {StreamPrefix.ToHocon()}");
         
-        if (!string.IsNullOrEmpty(TaggedStreamPrefix))
-            sb.AppendLine($"tagged-stream-prefix = {TaggedStreamPrefix.ToHocon()}");
+        if (!string.IsNullOrEmpty(TaggedStreamNamePattern))
+            sb.AppendLine($"tagged-stream-name-pattern = {TaggedStreamNamePattern.ToHocon()}");
         
         if (!string.IsNullOrEmpty(PersistenceIdsStreamName))
             sb.AppendLine($"persistence-ids-stream-name = {PersistenceIdsStreamName.ToHocon()}");
         
         if (!string.IsNullOrEmpty(PersistedEventsStreamName))
             sb.AppendLine($"persisted-events-stream-name = {PersistedEventsStreamName.ToHocon()}");
+        
+        if (!string.IsNullOrEmpty(Tenant))
+            sb.AppendLine($"tenant = {Tenant.ToHocon()}");
 
         base.Build(sb);
         

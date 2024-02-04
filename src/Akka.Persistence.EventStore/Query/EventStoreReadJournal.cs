@@ -25,6 +25,7 @@ public class EventStoreReadJournal
 {
     private readonly EventAdapters _eventAdapters;
     private readonly EventStoreReadJournalSettings _settings;
+    private readonly EventStoreTenantSettings _tenantSettings;
     private readonly EventStoreJournalSettings _writeSettings;
     private readonly IMessageAdapter _adapter;
     private readonly EventStoreClient _eventStoreClient;
@@ -36,6 +37,8 @@ public class EventStoreReadJournal
         _eventAdapters = Persistence.Instance.Apply(system).AdaptersFor(_settings.WritePlugin);
 
         _writeSettings = new EventStoreJournalSettings(system.Settings.Config.GetConfig(_settings.WritePlugin));
+
+        _tenantSettings = EventStoreTenantSettings.GetFrom(system);
         
         _adapter = _writeSettings.FindEventAdapter(system);
 
@@ -47,7 +50,7 @@ public class EventStoreReadJournal
         long fromSequenceNr,
         long toSequenceNr) => EventsFromStreamSource(
         EventStoreEventStreamFilter.FromPositionExclusive(
-            _writeSettings.GetStreamName(persistenceId),
+            _writeSettings.GetStreamName(persistenceId, _tenantSettings),
             fromSequenceNr, 
             maxSequenceNumber: toSequenceNr),
         _settings.QueryRefreshInterval,
@@ -58,7 +61,7 @@ public class EventStoreReadJournal
         long fromSequenceNr,
         long toSequenceNr) => EventsFromStreamSource(
         EventStoreEventStreamFilter.FromPositionExclusive(
-            _writeSettings.GetStreamName(persistenceId),
+            _writeSettings.GetStreamName(persistenceId, _tenantSettings),
             fromSequenceNr,
             maxSequenceNumber: toSequenceNr),
         null,
@@ -66,7 +69,7 @@ public class EventStoreReadJournal
 
     public Source<string, NotUsed> PersistenceIds()
     {
-        var filter = EventStoreEventStreamFilter.FromStart(_writeSettings.PersistenceIdsStreamName);
+        var filter = EventStoreEventStreamFilter.FromStart(_writeSettings.GetPersistenceIdsStreamName(_tenantSettings));
 
         return EventStoreSource
             .FromStream(
@@ -80,7 +83,7 @@ public class EventStoreReadJournal
 
     public Source<string, NotUsed> CurrentPersistenceIds()
     {
-        var filter = EventStoreEventStreamFilter.FromStart(_writeSettings.PersistenceIdsStreamName);
+        var filter = EventStoreEventStreamFilter.FromStart(_writeSettings.GetPersistenceIdsStreamName(_tenantSettings));
 
         return EventStoreSource
             .FromStream(
@@ -93,22 +96,30 @@ public class EventStoreReadJournal
     }
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive($"{_writeSettings.TaggedStreamPrefix}{tag}", offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(
+            _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
+            offset),
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive($"{_writeSettings.TaggedStreamPrefix}{tag}", offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(
+            _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
+            offset),
         null,
         true);
 
     public Source<EventEnvelope, NotUsed> AllEvents(Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive(_writeSettings.PersistedEventsStreamName, offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(
+            _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
+            offset),
         _settings.QueryRefreshInterval,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentAllEvents(Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive(_writeSettings.PersistedEventsStreamName, offset),
+        EventStoreEventStreamFilter.FromOffsetExclusive(
+            _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
+            offset),
         null,
         true);
 

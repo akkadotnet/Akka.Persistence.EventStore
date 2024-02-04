@@ -9,8 +9,8 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-[Collection("EventStoreSpec")]
-public sealed class EventStoreSnapshotStoreSpec : PluginSpec, IClassFixture<DatabaseFixture>
+[Collection("EventStoreDatabaseSpec")]
+public sealed class EventStoreSnapshotStoreSpec : PluginSpec
 {
     public EventStoreSnapshotStoreSpec(DatabaseFixture databaseFixture)
         : base(FromConfig(CreateSpecConfig(databaseFixture)).WithFallback(Config),
@@ -20,7 +20,7 @@ public sealed class EventStoreSnapshotStoreSpec : PluginSpec, IClassFixture<Data
         Initialize();
     }
 
-    private static readonly string _specConfigTemplate = @"
+    private static readonly string SpecConfigTemplate = @"
         akka.persistence.publish-plugin-commands = on
         akka.persistence.snapshot-store {
             plugin = ""akka.persistence.snapshot-store.my""
@@ -30,7 +30,7 @@ public sealed class EventStoreSnapshotStoreSpec : PluginSpec, IClassFixture<Data
             }
         }";
 
-    private static readonly Config Config = ConfigurationFactory.ParseString(_specConfigTemplate);
+    private static readonly Config Config = ConfigurationFactory.ParseString(SpecConfigTemplate);
     private readonly TestProbe _senderProbe;
     private List<SnapshotMetadata> _metadata;
 
@@ -62,7 +62,7 @@ public sealed class EventStoreSnapshotStoreSpec : PluginSpec, IClassFixture<Data
                 .Tell(
                     new SaveSnapshot(
                         metadata,
-                        string.Format("s-{0}", i)
+                        $"s-{i}"
                     ),
                     snapshotStoreSpec._senderProbe.Ref
                 );
@@ -85,6 +85,7 @@ public sealed class EventStoreSnapshotStoreSpec : PluginSpec, IClassFixture<Data
                         eventstore {
                             class = ""Akka.Persistence.EventStore.Snapshot.EventStoreSnapshotStore, Akka.Persistence.EventStore""
                             connection-string = """ + databaseFixture.ConnectionString + @"""
+                            tenant = ""es-snapshots""
                         }
                     }
                 }";

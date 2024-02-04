@@ -32,9 +32,10 @@ akka.persistence.journal.eventstore {
         actualConfig.GetString("connection-string").Should().Be(defaultConfig.GetString("connection-string"));
         actualConfig.GetString("adapter").Should().Be(defaultConfig.GetString("adapter"));
         actualConfig.GetString("prefix").Should().Be(defaultConfig.GetString("prefix"));
-        actualConfig.GetString("tagged-stream-prefix").Should().Be(defaultConfig.GetString("tagged-stream-prefix"));
+        actualConfig.GetString("tagged-stream-name-pattern").Should().Be(defaultConfig.GetString("tagged-stream-name-pattern"));
         actualConfig.GetString("persistence-ids-stream-name").Should().Be(defaultConfig.GetString("persistence-ids-stream-name"));
         actualConfig.GetString("persisted-events-stream-name").Should().Be(defaultConfig.GetString("persisted-events-stream-name"));
+        actualConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
@@ -48,9 +49,10 @@ akka.persistence.journal.eventstore {
             Serializer = "hyperion",
             Adapter = "custom",
             StreamPrefix = "prefix",
-            TaggedStreamPrefix = "custom-tagged",
+            TaggedStreamNamePattern = "custom-tagged-[[TAG]]",
             PersistedEventsStreamName = "persisted-events-custom",
-            PersistenceIdsStreamName = "persistence-ids-custom"
+            PersistenceIdsStreamName = "persistence-ids-custom",
+            Tenant = "tenant"
         };
 
         var fullConfig = opt.ToConfig();
@@ -65,8 +67,9 @@ akka.persistence.journal.eventstore {
         config.ConnectionString.Should().Be("a");
         config.Adapter.Should().Be("custom");
         config.StreamPrefix.Should().Be("prefix");
-        config.TaggedStreamPrefix.Should().Be("custom-tagged");
+        config.TaggedStreamNamePattern.Should().Be("custom-tagged-[[TAG]]");
         config.PersistedEventsStreamName.Should().Be("persisted-events-custom");
         config.PersistenceIdsStreamName.Should().Be("persistence-ids-custom");
+        config.Tenant.Should().Be("tenant");
     }
 }

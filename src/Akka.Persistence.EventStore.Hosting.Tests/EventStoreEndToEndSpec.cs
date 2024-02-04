@@ -12,9 +12,9 @@ using Xunit.Abstractions;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
 
-[Collection("EventStoreEndToEndSpec")]
+[Collection("EventStoreDatabaseSpec")]
 public class EventStoreEndToEndSpec(ITestOutputHelper output, DatabaseFixture fixture)
-    : Akka.Hosting.TestKit.TestKit(nameof(EventStoreEndToEndSpec), output), IClassFixture<DatabaseFixture>
+    : Akka.Hosting.TestKit.TestKit(nameof(EventStoreEndToEndSpec), output)
 {
     private const string GetAll = "getAll";
     private const string Ack = "ACK";
@@ -25,7 +25,8 @@ public class EventStoreEndToEndSpec(ITestOutputHelper output, DatabaseFixture fi
     {
         builder.WithEventStorePersistence(
                 connectionString: fixture.ConnectionString ?? "",
-                autoInitialize: true)
+                autoInitialize: true,
+                tenant: "hosting-spec")
             .StartActors(
                 (system, registry) =>
                 {

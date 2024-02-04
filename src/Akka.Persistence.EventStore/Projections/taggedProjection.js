@@ -1,7 +1,14 @@
+const forTenant = '[[TENANT_ID]]';
+const streamNamePattern = '[[TAGGED_STREAM_NAME_PATTERN]]';
+
 fromAll()
     .when({
         $any: function (s, e) {
             if (e.metadata) {
+                if (e.metadata.tenant !== forTenant) {
+                    return;
+                }
+                
                 let tags = e.metadata.tags;
                 
                 if (tags) {
@@ -10,7 +17,7 @@ fromAll()
                     }
                     
                     for (let i = 0, len = tags.length; i < len; i++) {
-                        linkTo(`[[TAGGED_STREAM_PREFIX]]${tags[i]}`, e);
+                        linkTo(streamNamePattern.replace('[[TAG]]', tags[i]), e);
                     }
                 }
             }

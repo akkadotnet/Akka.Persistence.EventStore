@@ -1,18 +1,19 @@
 using System.Collections.Immutable;
 using System.Threading.Tasks;
+using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Serialization;
 using EventStore.Client;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-public class TestMessageAdapter(Akka.Serialization.Serialization serialization, string defaultSerializer) 
-    : DefaultMessageAdapter(serialization, defaultSerializer)
+public class TestMessageAdapter(Akka.Serialization.Serialization serialization, ISettingsWithAdapter settings) 
+    : DefaultMessageAdapter(serialization, settings)
 {
     protected override IStoredEventMetadata GetEventMetadata(
         IPersistentRepresentation message,
         IImmutableSet<string> tags)
     {
-        return new TestEventMetadata(message, tags);
+        return new TestEventMetadata(message, tags, settings.Tenant);
     }
 
     protected override async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
@@ -31,7 +32,8 @@ public class TestMessageAdapter(Akka.Serialization.Serialization serialization, 
 
         public TestEventMetadata(
             IPersistentRepresentation message,
-            IImmutableSet<string> tags) : base(message, tags)
+            IImmutableSet<string> tags,
+            string tenant) : base(message, tags, tenant)
         {
             ExtraProp = "test";
         }

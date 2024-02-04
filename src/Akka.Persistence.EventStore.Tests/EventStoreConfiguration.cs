@@ -5,7 +5,10 @@ namespace Akka.Persistence.EventStore.Tests;
 
 public static class EventStoreConfiguration
 {
-    public static Config Build(DatabaseFixture databaseFixture, Type? overrideSerializer = null)
+    public static Config Build(
+        DatabaseFixture databaseFixture,
+        string tenant,
+        Type? overrideSerializer = null)
     {
         var config = ConfigurationFactory.ParseString($@"
 				akka.loglevel = INFO
@@ -14,6 +17,7 @@ public static class EventStoreConfiguration
                     class = ""Akka.Persistence.EventStore.Journal.EventStoreJournal, Akka.Persistence.EventStore""
                     connection-string = ""{databaseFixture.ConnectionString}""
                     auto-initialize = true
+                    tenant = ""{tenant}""
                     event-adapters {{
                         color-tagger  = ""Akka.Persistence.TCK.Query.ColorFruitTagger, Akka.Persistence.TCK""
                     }}
@@ -25,6 +29,7 @@ public static class EventStoreConfiguration
                 akka.persistence.snapshot-store.eventstore {{
                     class = ""Akka.Persistence.EventStore.Snapshot.EventStoreSnapshotStore, Akka.Persistence.EventStore""
                     connection-string = ""{databaseFixture.ConnectionString}""
+                    tenant = ""{tenant}""
                 }}
                 akka.persistence.query.journal.eventstore {{
                   class = ""Akka.Persistence.EventStore.Query.EventStoreReadJournalProvider, Akka.Persistence.EventStore""

@@ -25,6 +25,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     private const string LastSequenceNumberMetaDataKey = "lastSeq";
     
     private readonly EventStoreJournalSettings _settings;
+    private readonly EventStoreTenantSettings _tenantSettings;
     private readonly ILoggingAdapter _log;
     
     private EventStoreClient _eventStoreClient = null!;
@@ -35,11 +36,12 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     {
         _log = Context.GetLogger();
         _settings = new EventStoreJournalSettings(journalConfig);
+        _tenantSettings = EventStoreTenantSettings.GetFrom(Context.System);
     }
 
     public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr)
     {
-        var filter = EventStoreEventStreamFilter.FromEnd(_settings.GetStreamName(persistenceId), fromSequenceNr);
+        var filter = EventStoreEventStreamFilter.FromEnd(_settings.GetStreamName(persistenceId, _tenantSettings), fromSequenceNr);
         
         var lastMessage = await EventStoreSource
             .FromStream(_eventStoreClient, filter)
@@ -51,7 +53,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         if (lastMessage != null)
             return lastMessage.Data.SequenceNr;
 
-        var metadata = await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId));
+        var metadata = await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId, _tenantSettings));
 
         var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
                              new Dictionary<string, object>();
@@ -75,7 +77,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         Action<IPersistentRepresentation> recoveryCallback)
     {
         var filter = EventStoreEventStreamFilter.FromPositionInclusive(
-            _settings.GetStreamName(persistenceId),
+            _settings.GetStreamName(persistenceId, _tenantSettings),
             fromSequenceNr, 
             fromSequenceNr,
             toSequenceNr);
@@ -112,7 +114,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                     .SerializeWith(_adapter)
                     .Grouped(persistentMessages.Count)
                     .Select(x => new EventStoreWrite(
-                        _settings.GetStreamName(persistenceId),
+                        _settings.GetStreamName(persistenceId, _tenantSettings),
                         x.ToImmutableList(),
                         expectedVersion))
                     .RunWith(EventStoreSink.Create(_eventStoreClient), _mat);
@@ -130,7 +132,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
     protected override async Task DeleteMessagesToAsync(string persistenceId, long toSequenceNr)
     {
-        var streamName = _settings.GetStreamName(persistenceId);
+        var streamName = _settings.GetStreamName(persistenceId, _tenantSettings);
 
         var filter = EventStoreEventStreamFilter.FromEnd(streamName, maxSequenceNumber: toSequenceNr);
         

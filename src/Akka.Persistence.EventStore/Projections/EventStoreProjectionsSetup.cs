@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -18,48 +19,63 @@ public class EventStoreProjectionsSetup(
     EventStoreJournalSettings settings)
 {
     public Task SetupTaggedProjection(
-        string name = "events_by_tag",
+        Func<string, string>? getName = null,
         bool skipIfExists = true)
     {
+        getName ??= t => string.IsNullOrEmpty(t) ? "events_by_tag" : $"events_by_tag_{t}";
+
+        var tenantSettings = EventStoreTenantSettings.GetFrom(system);
+        
         return CreateProjection(
             "taggedProjection",
-            name,
+            getName(settings.Tenant),
             new Dictionary<string, string>
             {
-                ["TAGGED_STREAM_PREFIX"] = settings.TaggedStreamPrefix
+                ["TAGGED_STREAM_NAME_PATTERN"] = settings.GetTaggedStreamName("[[TAG]]", tenantSettings),
+                ["TENANT_ID"] = settings.Tenant
             }.ToImmutableDictionary(),
             skipIfExists);
     }
     
     public Task SetupAllPersistenceIdsProjection(
-        string name = "all_persistence_ids",
+        Func<string, string>? getName = null,
         bool skipIfExists = true)
     {
         var adapter = settings.FindEventAdapter(system);
         
+        var tenantSettings = EventStoreTenantSettings.GetFrom(system);
+        
+        getName ??= t => string.IsNullOrEmpty(t) ? "all_persistence_ids" : $"all_persistence_ids_{t}";
+        
         return CreateProjection(
             "allPersistenceIdsProjection",
-            name,
+            getName(settings.Tenant),
             new Dictionary<string, string>
             {
-                ["ALL_PERSISTENCE_IDS_STREAM_NAME"] = settings.PersistenceIdsStreamName,
+                ["ALL_PERSISTENCE_IDS_STREAM_NAME"] = settings.GetPersistenceIdsStreamName(tenantSettings),
                 ["EVENT_NAME"] = nameof(NewPersistenceIdFound),
                 ["EVENT_MANIFEST"] = adapter.GetManifest(typeof(NewPersistenceIdFound)),
-                ["JOURNAL_TYPE"] = Constants.JournalTypes.WriteJournal
+                ["JOURNAL_TYPE"] = Constants.JournalTypes.WriteJournal,
+                ["TENANT_ID"] = settings.Tenant
             }.ToImmutableDictionary(),
             skipIfExists);
     }
     
     public Task SetupAllPersistedEventsProjection(
-        string name = "all_persisted_events",
+        Func<string, string>? getName = null,
         bool skipIfExists = true)
     {
+        var tenantSettings = EventStoreTenantSettings.GetFrom(system);
+        
+        getName ??= t => string.IsNullOrEmpty(t) ? "all_persisted_events" : $"all_persisted_events_{t}";
+        
         return CreateProjection(
             "allPersistedEventsProjection",
-            name,
+            getName(settings.Tenant),
             new Dictionary<string, string>
             {
-                ["ALL_EVENT_STREAM_NAME"] = settings.PersistedEventsStreamName
+                ["ALL_EVENT_STREAM_NAME"] = settings.GetPersistedEventsStreamName(tenantSettings),
+                ["TENANT_ID"] = settings.Tenant
             }.ToImmutableDictionary(),
             skipIfExists);
     }

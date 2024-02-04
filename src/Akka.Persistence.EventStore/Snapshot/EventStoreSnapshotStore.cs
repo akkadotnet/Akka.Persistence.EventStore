@@ -19,11 +19,13 @@ public class EventStoreSnapshotStore : SnapshotStore
     private readonly EventStoreClient _eventStoreClient;
     private readonly IMessageAdapter _messageAdapter;
     private readonly EventStoreSnapshotSettings _settings;
+    private readonly EventStoreTenantSettings _tenantSettings;
     private readonly ActorMaterializer _mat;
 
     public EventStoreSnapshotStore(Config snapshotConfig)
     {
         _settings = new EventStoreSnapshotSettings(snapshotConfig);
+        _tenantSettings = EventStoreTenantSettings.GetFrom(Context.System);
 
         _eventStoreClient = new EventStoreClient(EventStoreClientSettings.Create(_settings.ConnectionString));
         _messageAdapter = _settings.FindEventAdapter(Context.System);
@@ -40,7 +42,7 @@ public class EventStoreSnapshotStore : SnapshotStore
         string persistenceId,
         SnapshotSelectionCriteria criteria)
     {
-        var result = await FindSnapshot(_settings.GetStreamName(persistenceId), criteria);
+        var result = await FindSnapshot(_settings.GetStreamName(persistenceId, _tenantSettings), criteria);
 
         return result?.Data;
     }
@@ -50,7 +52,7 @@ public class EventStoreSnapshotStore : SnapshotStore
         await Source.Single(new SelectedSnapshot(metadata, snapshot))
             .SerializeWith(_messageAdapter)
             .Select(x => new EventStoreWrite(
-                _settings.GetStreamName(metadata.PersistenceId),
+                _settings.GetStreamName(metadata.PersistenceId, _tenantSettings),
                 ImmutableList.Create(x)))
             .RunWith(EventStoreSink.Create(_eventStoreClient), _mat);
     }
@@ -67,7 +69,7 @@ public class EventStoreSnapshotStore : SnapshotStore
         if (criteria.Equals(SnapshotSelectionCriteria.None))
             return;
      
-        var streamName = _settings.GetStreamName(persistenceId);
+        var streamName = _settings.GetStreamName(persistenceId, _tenantSettings);
 
         var snapshotToDelete = await FindSnapshot(
             streamName,

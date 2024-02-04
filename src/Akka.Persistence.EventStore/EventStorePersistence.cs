@@ -10,10 +10,12 @@ public class EventStorePersistence : IExtension
     public const string JournalConfigPath = "akka.persistence.journal.eventstore";
     public const string SnapshotStoreConfigPath = "akka.persistence.snapshot-store.eventstore";
     public const string QueryConfigPath = "akka.persistence.query.journal.eventstore";
+    public const string TenantConfigPath = "akka.persistence.eventstore.tenant";
     
     public static readonly Config DefaultJournalConfiguration;
     public static readonly Config DefaultSnapshotConfiguration;
     public static readonly Config DefaultQueryConfiguration;
+    public static readonly Config DefaultTenantConfiguration;
     public static readonly Config DefaultConfiguration;
     public static readonly Config DefaultJournalMappingConfiguration;
     public static readonly Config DefaultSnapshotMappingConfiguration;
@@ -23,6 +25,7 @@ public class EventStorePersistence : IExtension
     public readonly Config DefaultJournalConfig = DefaultJournalConfiguration;
     public readonly Config DefaultJournalMappingConfig = DefaultJournalMappingConfiguration;
     public readonly Config DefaultSnapshotConfig = DefaultSnapshotConfiguration;
+    public readonly Config DefaultTenantConfig = DefaultTenantConfiguration;
     public readonly Config DefaultSnapshotMappingConfig = DefaultSnapshotMappingConfiguration;
     public readonly Config DefaultQueryConfig = DefaultQueryConfiguration;
 
@@ -36,6 +39,7 @@ public class EventStorePersistence : IExtension
         DefaultJournalConfiguration = DefaultConfiguration.GetConfig(JournalConfigPath);
         DefaultSnapshotConfiguration = DefaultConfiguration.GetConfig(SnapshotStoreConfigPath);
         DefaultQueryConfiguration = DefaultConfiguration.GetConfig(QueryConfigPath);
+        DefaultTenantConfiguration = DefaultConfiguration.GetConfig(TenantConfigPath);
 
         DefaultJournalMappingConfiguration = DefaultJournalConfiguration.GetConfig("default");
         DefaultSnapshotMappingConfiguration = DefaultSnapshotConfiguration.GetConfig("default");

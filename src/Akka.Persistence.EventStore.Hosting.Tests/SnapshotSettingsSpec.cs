@@ -31,6 +31,7 @@ akka.persistence.snapshot-store.eventstore {
         actualConfig.GetString("connection-string").Should().Be("a");
         actualConfig.GetString("adapter").Should().Be(defaultConfig.GetString("adapter"));
         actualConfig.GetString("prefix").Should().Be(defaultConfig.GetString("prefix"));
+        actualConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
@@ -41,7 +42,8 @@ akka.persistence.snapshot-store.eventstore {
             AutoInitialize = false,
             ConnectionString = "a",
             Adapter = "custom",
-            Prefix = "custom@"
+            Prefix = "custom@",
+            Tenant = "tenant"
         };
 
         var fullConfig = opt.ToConfig();
@@ -54,5 +56,6 @@ akka.persistence.snapshot-store.eventstore {
         config.ConnectionString.Should().Be("a");
         config.Adapter.Should().Be("custom");
         config.StreamPrefix.Should().Be("custom@");
+        config.Tenant.Should().Be("tenant");
     }
 }

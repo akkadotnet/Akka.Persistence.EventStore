@@ -12,14 +12,14 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-[Collection("PersistentSubscriptionSpec")]
-public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit, IClassFixture<DatabaseFixture>
+[Collection("EventStoreDatabaseSpec")]
+public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 {
     private readonly EventStorePersistentSubscriptionsClient _subscriptionClient;
     private readonly EventStoreClient _eventStoreClient;
     
     public PersistentSubscriptionSpec(DatabaseFixture databaseFixture) 
-        : base(EventStoreConfiguration.Build(databaseFixture))
+        : base(EventStoreConfiguration.Build(databaseFixture, "persistent-subscription-spec"))
     {
         var clientSettings = EventStoreClientSettings.Create(databaseFixture.ConnectionString ?? "");
         
@@ -189,7 +189,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit, IClassFix
         
         await probe.ExpectCompleteAsync();
 
-        await Task.Delay(TimeSpan.FromMicroseconds(500));
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
 
         var subscriptionAfterCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 

@@ -3,8 +3,8 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-[Collection("EventStoreSpec")]
-public class EventStoreJournalSpec : JournalSpec, IClassFixture<DatabaseFixture>
+[Collection("EventStoreDatabaseSpec")]
+public class EventStoreJournalSpec : JournalSpec
 {
     protected override bool SupportsRejectingNonSerializableObjects => false;
     
@@ -12,7 +12,7 @@ public class EventStoreJournalSpec : JournalSpec, IClassFixture<DatabaseFixture>
     protected override bool SupportsSerialization => false;
 
     public EventStoreJournalSpec(DatabaseFixture databaseFixture)
-        : base(EventStoreConfiguration.Build(databaseFixture), nameof(EventStoreJournalSpec))
+        : base(EventStoreConfiguration.Build(databaseFixture, "es-journal-spec"), nameof(EventStoreJournalSpec))
     {
         Initialize();
     }

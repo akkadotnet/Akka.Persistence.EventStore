@@ -21,16 +21,18 @@ public class EventStoreSnapshotSettings : ISettingsWithAdapter
         StreamPrefix = config.GetString("prefix", "snapshot@");
         DefaultSerializer = config.GetString("serializer");
         MaterializerDispatcher = config.GetString("materializer-dispatcher", "akka.actor.default-dispatcher");
+        Tenant = config.GetString("tenant");
     }
 
     public string ConnectionString { get; }
     public string Adapter { get; }
     public string DefaultSerializer { get; }
     public string StreamPrefix { get; }
+    public string Tenant { get; }
     public string MaterializerDispatcher { get; }
     
-    public string GetStreamName(string persistenceId)
+    public string GetStreamName(string persistenceId, EventStoreTenantSettings tenantSettings)
     {
-        return $"{StreamPrefix}{persistenceId}";
+        return tenantSettings.GetStreamName($"{StreamPrefix}{persistenceId}", Tenant);
     }
 }

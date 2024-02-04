@@ -2,12 +2,14 @@ using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Akka.Actor;
+using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.Journal;
 using EventStore.Client;
 
 namespace Akka.Persistence.EventStore.Serialization;
 
-public class DefaultMessageAdapter(Akka.Serialization.Serialization serialization, string defaultSerializer) : IMessageAdapter
+public class DefaultMessageAdapter(Akka.Serialization.Serialization serialization, ISettingsWithAdapter settings) 
+    : IMessageAdapter
 {
     public async Task<EventData> Adapt(IPersistentRepresentation persistentMessage)
     {
@@ -101,14 +103,14 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
 
     protected virtual Task<ReadOnlyMemory<byte>> Serialize(object data)
     {
-        var serializer = serialization.FindSerializerForType(data.GetType(), defaultSerializer);
+        var serializer = serialization.FindSerializerForType(data.GetType(), settings.DefaultSerializer);
 
         return Task.FromResult(new ReadOnlyMemory<byte>(serializer.ToBinary(data)));
     }
 
     protected virtual Task<object?> DeSerialize(ReadOnlyMemory<byte> data, Type type)
     {
-        var serializer = serialization.FindSerializerForType(type, defaultSerializer);
+        var serializer = serialization.FindSerializerForType(type, settings.DefaultSerializer);
 
         return Task.FromResult<object?>(serializer.FromBinary(data.ToArray(), type));
     }
@@ -127,7 +129,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         IPersistentRepresentation message,
         IImmutableSet<string> tags)
     {
-        return new StoredEventMetadata(message, tags);
+        return new StoredEventMetadata(message, tags, settings.Tenant);
     }
 
     protected virtual async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
@@ -141,7 +143,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         SnapshotMetadata snapshotMetadata,
         string manifest)
     {
-        return new StoredSnapshotMetadata(snapshotMetadata, manifest);
+        return new StoredSnapshotMetadata(snapshotMetadata, manifest, settings.Tenant);
     }
 
     protected virtual async Task<IStoredSnapshotMetadata?> GetSnapshotMetadataFrom(ResolvedEvent evnt)
@@ -178,7 +180,8 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
 
         public StoredEventMetadata(
             IPersistentRepresentation message,
-            IImmutableSet<string> tags)
+            IImmutableSet<string> tags,
+            string tenant)
         {
             persistenceId = message.PersistenceId;
             occurredOn = DateTimeOffset.Now;
@@ -188,6 +191,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
             journalType = Constants.JournalTypes.WriteJournal;
             timestamp = message.Timestamp;
             this.tags = tags;
+            this.tenant = tenant;
             sender = message.Sender;
         }
 
@@ -199,6 +203,8 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         public string writerGuid { get; set; } = null!;
         public string journalType { get; set; } = null!;
         public long? timestamp { get; set; }
+        // ReSharper disable once InconsistentNaming
+        public string tenant { get; set; } = null!;
         // ReSharper disable once InconsistentNaming
         public IImmutableSet<string> tags { get; set; } = ImmutableHashSet<string>.Empty;
         public IActorRef? sender { get; set; }
@@ -225,7 +231,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
             
         }
 
-        public StoredSnapshotMetadata(SnapshotMetadata snapshotMetadata, string manifest)
+        public StoredSnapshotMetadata(SnapshotMetadata snapshotMetadata, string manifest, string tenant)
         {
             persistenceId = snapshotMetadata.PersistenceId;
             occurredOn = snapshotMetadata.Timestamp;
@@ -233,6 +239,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
             sequenceNr = snapshotMetadata.SequenceNr;
             timestamp = snapshotMetadata.Timestamp.Ticks;
             journalType = Constants.JournalTypes.SnapshotJournal;
+            this.tenant = tenant;
         }
         
         public string persistenceId { get; set; } = null!;
@@ -241,6 +248,8 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         public long sequenceNr { get; set; }
         // ReSharper disable once InconsistentNaming
         public long timestamp { get; set; }
+        // ReSharper disable once InconsistentNaming
+        public string tenant { get; set; } = null!;
         public string journalType { get; set; } = null!;
     }
 }

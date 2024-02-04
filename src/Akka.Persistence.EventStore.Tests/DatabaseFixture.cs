@@ -17,14 +17,13 @@ public class DatabaseFixture : IAsyncLifetime
     private static readonly Random Random;
     private const string EventStoreImage = "eventstore/eventstore";
     private const string EventStoreImageTag = "23.10.0-jammy";
-    private int _restartCount;
     private int _httpPort;
 
     static DatabaseFixture()
     {
         Random = new Random();
     }
-
+    
     public string? ConnectionString { get; private set; }
 
     public async Task InitializeAsync()
@@ -97,7 +96,8 @@ public class DatabaseFixture : IAsyncLifetime
                     {
                         "EVENTSTORE_RUN_PROJECTIONS=All",
                         "EVENTSTORE_MEM_DB=True",
-                        "EVENTSTORE_INSECURE=True"
+                        "EVENTSTORE_INSECURE=True",
+                        "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=True"
                     },
                     HostConfig = new HostConfig
                     {
@@ -131,18 +131,7 @@ public class DatabaseFixture : IAsyncLifetime
             ConnectionString = "esdb://admin:changeit@localhost:2113?tls=false&tlsVerifyCert=false";
         }
     }
-
-    public DatabaseFixture Restart()
-    {
-        if (_restartCount++ == 0) return this; // Don't restart the first time
-        
-        _client?.Containers.RestartContainerAsync(_eventStoreContainerName,
-            new ContainerRestartParameters { WaitBeforeKillSeconds = 0 }).Wait();
-        
-        Task.Delay(5000).Wait();
-        return this;
-    }
-
+    
     public async Task DisposeAsync()
     {
         if (_client != null)

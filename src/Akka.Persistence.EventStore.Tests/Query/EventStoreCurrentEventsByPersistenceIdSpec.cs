@@ -1,3 +1,4 @@
+using System;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.Query;
 using Akka.Persistence.TCK.Query;
@@ -6,12 +7,11 @@ using Xunit.Abstractions;
 
 namespace Akka.Persistence.EventStore.Tests.Query;
 
-[Collection("EventStoreCurrentEventsByPersistenceIdSpec")]
-public class EventStoreCurrentEventsByPersistenceIdSpec : CurrentEventsByPersistenceIdSpec,
-    IClassFixture<DatabaseFixture>
+[Collection("EventStoreDatabaseSpec")]
+public class EventStoreCurrentEventsByPersistenceIdSpec : CurrentEventsByPersistenceIdSpec
 {
     public EventStoreCurrentEventsByPersistenceIdSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
-        base(EventStoreConfiguration.Build(databaseFixture), nameof(EventStoreCurrentEventsByPersistenceIdSpec), output)
+        base(EventStoreConfiguration.Build(databaseFixture, Guid.NewGuid().ToString()), nameof(EventStoreCurrentEventsByPersistenceIdSpec), output)
     {
         ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }

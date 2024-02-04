@@ -29,10 +29,10 @@ public static class SettingsWithAdapterExtensions
             }
 
             var adapterConstructor =
-                journalMessageAdapterType.GetConstructor([typeof(Akka.Serialization.Serialization)]);
+                journalMessageAdapterType.GetConstructor([typeof(Akka.Serialization.Serialization), typeof(ISettingsWithAdapter)]);
 
             if ((adapterConstructor != null
-                    ? adapterConstructor.Invoke([actorSystem.Serialization])
+                    ? adapterConstructor.Invoke([actorSystem.Serialization, settings])
                     : Activator.CreateInstance(journalMessageAdapterType)) is IMessageAdapter adapter)
                 
                 return adapter;
@@ -51,7 +51,7 @@ public static class SettingsWithAdapterExtensions
         
         IMessageAdapter GetDefaultAdapter()
         {
-            return new DefaultMessageAdapter(actorSystem.Serialization, settings.DefaultSerializer);
+            return new DefaultMessageAdapter(actorSystem.Serialization, settings);
         }
     }
 }

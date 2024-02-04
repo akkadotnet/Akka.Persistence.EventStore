@@ -1,3 +1,5 @@
+const forTenant = '[[TENANT_ID]]';
+
 fromAll()
     .when({
         $any: function (s, e) {
@@ -9,7 +11,8 @@ fromAll()
                     && persistenceId.length > 0 
                     && sequenceNr 
                     && sequenceNr === 1 
-                    && e.metadata.skipPersistenceId !== true) {
+                    && e.metadata.skipPersistenceId !== true
+                    && e.metadata.tenant === forTenant) {
                     emit(
                         '[[ALL_PERSISTENCE_IDS_STREAM_NAME]]', 
                         '[[EVENT_NAME]]', 
@@ -22,7 +25,8 @@ fromAll()
                             'writerGuid': e.metadata.writerGuid,
                             'journalType': '[[JOURNAL_TYPE]]',
                             'tags': [],
-                            'skipPersistenceId': true
+                            'skipPersistenceId': true,
+                            'tenant': forTenant
                         });
                 }
             }
