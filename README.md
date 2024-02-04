@@ -1,4 +1,4 @@
-# Akka.Persistence.EventStore and Akka.Persistence.EventStore.Query
+# Akka.Persistence.EventStore
 
 [![NuGet Version](http://img.shields.io/nuget/v/Akka.Persistence.EventStore.svg?style=flat)](https://www.nuget.org/packages/Akka.Persistence.EventStore)
 
@@ -7,7 +7,7 @@ Akka Persistence EventStore Plugin is a plugin for `Akka Persistence` that provi
  - snapshot store
  - standard [persistence queries](http://getakka.net/articles/persistence/persistence-query.html)
 
-This plugin stores data in a [EventStore](https://eventstore.org) database and based on [EventStore.Client](https://www.nuget.org/packages/EventStore.Client) client library for .net45 and  [EventStore.ClientAPI.NetCore](https://www.nuget.org/packages/EventStore.ClientAPI.NetCore) client library for .netstandard2.0.
+This plugin stores data in a [EventStoreDB](https://www.eventstore.com/) database and based on [EventStore.Client.Grpc](https://www.nuget.org/packages/EventStore.Client.Grpc) client library.
 
 ## Installation
 From `Nuget Package Manager`
@@ -27,10 +27,14 @@ akka.persistence.journal.plugin = "akka.persistence.journal.eventstore"
 This will run the journal with its default settings. The default settings can be changed with the configuration properties defined in your HOCON config:
 
 #### Configuration
-- `connection-string` - connection string, as described here: https://eventstore.org/docs/dotnet-api/connecting-to-a-server/index.html#connection-string
-- `connection-name ` - connection name to tell eventstore server who is connecting
-- `read-batch-size ` - when reading back events, how many to bring back at a time
-- `adapter ` - controls how the event data and metadata is stored and retrieved. See Adapter section below for more information.
+- `connection-string` - Connection string, as described here: https://developers.eventstore.com/clients/grpc/#connection-string.
+- `adapter ` - Controls how the event data and metadata is stored and retrieved. See Adapter section below for more information.
+- `auto-initialize` - Whether or not the plugin should create projections to support read journal on startup. See Projections section below for more information.
+- `prefix` - A optional prefix that will be added to streams.
+- `tenant` - A optional tenant that should be used to support multi-tenant environments.
+- `tagged-stream-name-pattern` - A pattern used when creating a stream name for a tags-stream. The name `[[TAG]]` will be replaced by the actual tag used.
+- `persistence-ids-stream-name` - A name for the stream that stores all persistence id's (to support read journal).
+- `persisted-events-stream-name` - A name for the stream that stores all events (to support read journal).
 
 #### Example HOCON Configuration
 ```
@@ -38,8 +42,16 @@ This will run the journal with its default settings. The default settings can be
     journal {
         plugin = "akka.persistence.journal.eventstore""
         eventstore {
-            connection-string = "ConnectTo=tcp://admin:changeit@localhost:1113; HeartBeatTimeout=500"
-            connection-name = "Akka"
+            connection-string = "esdb://admin:changeit@localhost:2113"
+	    adapter = "default"
+	    auto-initialize = false
+	    
+	    prefix = ""
+	    tenant = ""
+
+	    tagged-stream-name-pattern = "tagged-[[TAG]]"
+	    persistence-ids-stream-name = "persistenceids"
+	    persisted-events-stream-name = "persistedevents"
         }
     }
 }
@@ -47,17 +59,20 @@ This will run the journal with its default settings. The default settings can be
 ### Adapter
 
 Akka Persistence EventStore Plugin supports changing how data is stored and retrieved. 
-By default, it will serialize the data using ```Akka.Serialization.NewtonSoftJsonSerializer```, and populate the Metadata with the 
+By default, it will serialize the data using the configured serializer in Akka, and populate the Metadata with the 
 following information:
 ```json
 {
   "persistenceId": "p-14",
   "occurredOn": "2018-05-03T10:28:06.3437687-06:00",
   "manifest": "",
-  "senderPath": "",
+  "sender": "",
   "sequenceNr": 5,
   "writerGuid": "f8706bba-52a7-4326-a760-990c7f657c46",
-  "clrEventType": "System.String, System.Private.CoreLib"
+  "journalType": "WriteJournal"
+  "timestamp": 123456789,
+  "tenant": "",
+  "tags": []
 }
 ```
 
@@ -67,50 +82,43 @@ If you are happy with the default serialization and metadata, but want to just a
 - Encrypt data
 - Change the "type" stored in event store
 
-You can inherit from DefaultAdapter and override the ```ToBytes``` and ```ToEvent``` methods
-```C#
-public class AltAdapter : DefaultAdapter
-{
-    protected override byte[] ToBytes(object @event, JObject metadata, out string type, out bool isJson)
-    {
-        var bytes = base.ToBytes(@event, metadata, out type, out isJson);
-        
-        // Add some additional metadata, such as the CLR type name to help with deserialization
-        metadata["additionalProp"] = true;
+You can inherit from DefaultAdapter and override the ```Serialize```, ```DeSerialize```, ```GetEventMetadata```, ```GetSnapshotMetadata```
+, ```GetEventMetadataFrom``` and ```GetSnapshotMetadataFrom``` methods
 
-        // Do something additional with bytes, or do something to produce bytes
-        return bytes;
-
-    }
-    protected override object ToEvent(byte[] bytes, JObject metadata)
-    {
-        // Use the metadata to determine how to convert it back to an event, such as using the CLR type captured 
-        // in ToBytes.
-        // Do something additional with bytes before handing it off to persistent actors.
-        return base.ToEvent(bytes, metadata);
-    }         
-}
-```
-
-You also have the option of creating a new implemenation of ```Akka.Persistence.EventStore.IAdapter```.
+You also have the option of creating a new implemenation of ```Akka.Persistence.EventStore.Serialization.IMessageAdapter```.
 Everything is DIY in this case, including correct handling of internal Akka types if they appear in 
 events. Make use of the supplied ```Akka.Serialization.Serialization``` to help with this.
 
 ```C#
-public class CustomAdapter : IAdapter
+public class CustomAdapter : IMessageAdapter
 {
-    public DefaultAdapter(Akka.Serialization.Serialization serialization)
+    public CustomAdapter(Akka.Serialization.Serialization serialization, ISettingsWithAdapter settings)
     {
     }
 
-    public EventData Adapt(IPersistentRepresentation persistentMessage)
+    public Task<EventData> Adapt(IPersistentRepresentation persistentMessage)
     {
         // Implement
     }
 
-    public IPersistentRepresentation Adapt(ResolvedEvent resolvedEvent)
+    public Task<EventData> Adapt(SnapshotMetadata snapshotMetadata, object snapshot)
     {
         // Implement
+    }
+    
+    public Task<IPersistentRepresentation?> AdaptEvent(ResolvedEvent evnt)
+    {
+    	// Implement
+    }
+    
+    public Task<SelectedSnapshot?> AdaptSnapshot(ResolvedEvent evnt)
+    {
+    	// Implement
+    }
+    
+    public string GetManifest(Type type)
+    {
+    	// Implement
     }
 }
 ```
@@ -122,16 +130,79 @@ akka.persistence {
         plugin = "akka.persistence.journal.eventstore""
         eventstore {
             class = "Akka.Persistence.EventStore.Journal.EventStoreJournal, Akka.Persistence.EventStore"
-            connection-string = "ConnectTo=tcp://admin:changeit@localhost:1113; HeartBeatTimeout=500"
-            connection-name = "Akka"
-            read-batch-size = 500
+            connection-string = "esdb://admin:changeit@localhost:2113"
             adapter = "Your.Namespace.YourAdapter, Your.Assembly"
         }
     }
 }
 ```
 
-### Breaking Changes in 1.4
+## Snapshot plugin
+
+To activate the snapshot plugin, add the following line to your HOCON config:
+```
+akka.persistence.snapshot-store.plugin = "akka.persistence.snapshot-store.eventstore"
+```
+This will run the snapshot store with its default settings. The default settings can be changed with the configuration properties defined in your HOCON config:
+
+#### Configuration
+- `connection-string` - Connection string, as described here: https://developers.eventstore.com/clients/grpc/#connection-string.
+- `adapter ` - Controls how the event data and metadata is stored and retrieved. See Adapter section below for more information.
+- `auto-initialize` - Whether or not the plugin should create projections to support read journal on startup. See Projections section below for more information.
+- `prefix` - A optional prefix that will be added to streams.
+- `tenant` - A optional tenant that should be used to support multi-tenant environments.
+
+#### Example HOCON Configuration
+```
+ akka.persistence {
+    snapshot-store {
+        plugin = "akka.persistence.snapshot-store.eventstore""
+        eventstore {
+            connection-string = "esdb://admin:changeit@localhost:2113"
+	    adapter = "default"
+	    
+	    prefix = ""
+	    tenant = ""
+        }
+    }
+}
+```
+
+## Read Journal plugin
+
+Please note that you need to cofigure write jouranl anyways since EventStore 
+Persistance Query reuses connection from that journal.
+
+To activate the journal plugin, add the following line to your HOCON config:
+```
+akka.persistence.query.journal.plugin = "akka.persistence.query.journal.eventstore"
+```
+This will run the journal with its default settings. The default settings can be changed with the configuration properties defined in your HOCON config:
+
+#### HOCON Configuration
+
+- `write-plugin` - Absolute path to the write journal plugin configuration entry that this query journal will connect to. If undefined (or "") it will connect to the default journal as specified by the `akka.persistence.journal.plugin` property.
+- `refresh-interval` - The amount of time the plugin will wait between queries when it didn't find any events.
+
+#### HOCON Configuration Example
+```
+akka.persistence.query.journal.eventstore {
+    write-plugin = ""
+    refresh-interval = 5s
+}
+```
+
+#### Usage
+
+To use standard queries please refer to documentation about [Persistence Query](http://getakka.net/articles/persistence/persistence-query.html) on getakka.net website.
+
+#### Projections
+
+To support the Read Journal the plugin takes advantage of the [projections](https://developers.eventstore.com/server/v23.10/projections.html#introduction) feature
+of EventStoreDB. If you setup `auto-initialize` on the Journal the required projections will be created for you on startup. You can also use `Akka.Persistence.EventStore.Projections.EventStoreProjectionsSetup`
+to create the projections yourself if you want.
+
+## Breaking Changes in 1.4
 
 1. The `DefaultEventAdapter` does not support internal Akka types (e.g. actor refs) and thus specs are 
 failing. This has been updated to use `Akka.Serialization.NewtonSoftJsonSerializer`. If this does not 
@@ -150,55 +221,8 @@ uses `System.Provider.ResolveActorRef` and `Akka.Serialization.Serialization.Ser
 to accomplish this. Legacy behavior is preserved by using `System.ActorSelection` rather 
 than the journal's actor context.
 
-# Akka.Persistence.EventStore.Query
-
-## Installation
-From `Nuget Package Manager`
-```PowerShell
-Install-Package Akka.Persistence.EventStore.Query
-```
-From `.NET CLI`
-```Shell
-dotnet add package Akka.Persistence.EventStore.Query
-```
-
-Please note that you need to cofigure write jouranl anyways since EventStore 
-Persistance Query reuses connection from that journal. Also, it uses 
-`IEventStoreConnection.SubscribeToStreamFrom` known as Catch up subscription, 
-this means that each subscription will start new connection under the hood. 
-This is the way how official EventStore client library works.
-
-## Read Journal plugin
-To activate the journal plugin, add the following line to your HOCON config:
-```
-akka.persistence.query.journal.plugin = "akka.persistence.query.journal.eventstore"
-```
-This will run the journal with its default settings. The default settings can be changed with the configuration properties defined in your HOCON config:
-
-#### HOCON Configuration
-
-- `write-plugin` - Absolute path to the write journal plugin configuration entry that this query journal will connect to. If undefined (or "") it will connect to the default journal as specified by the `akka.persistence.journal.plugin` property.
-- `max-buffer-size` - How many events to fetch in one query (replay) and keep buffered until they are delivered downstreams. Default value is 500.
-- `auto-ack` - Should query journal automaticaly aknowladge delivered events to downstream. Default is `false`. This is reserved for next release for competing consumers query. See [this docs](https://eventstore.org/docs/dotnet-api/competing-consumers/index.html) for more details
-
-#### HOCON Configuration Example
-```
-akka.persistence.query.journal.eventstore {
-    write-plugin = ""
-    max-buffer-size = 500
-    auto-ack = false
-}
-```
-
-#### Usage
-
-To use standard queries please refer to documentation about [Persistence Query](http://getakka.net/articles/persistence/persistence-query.html) on getakka.net website.
-
-## TODO
-
-- CompetingBy(string groupName, string streamName)
-
 ## Maintainer
 - [ryandanthony](https://github.com/ryandanthony)
 - [mjaric](https://github.com/mjaric)
 - [ptjhuang](https://github.com/ptjhuang)
+- [MattiasJakobsson](https://github.com/MattiasJakobsson)
