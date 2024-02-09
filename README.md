@@ -203,9 +203,10 @@ to create the projections yourself if you want.
 
 ## Breaking Changes in 1.5
 
-1. The legacy adapter has been removed.
-2. The default adapter will now use the serializer used by akka.
-3. The query plugin has been changed to use eventstore projections that needs to be created.
+1. The `Akka.Persistence.EventStore.Query` package has been removed and the read journal has been moved into `Akka.Persistence.EventStore`.
+2. The legacy adapter has been removed.
+3. The default adapter will now use the serializer used by akka.
+4. The read journal has been changed to use eventstore projections that needs to be created.
 
 ## Breaking Changes in 1.4
 
