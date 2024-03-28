@@ -1,44 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\common.props" />
 	<PropertyGroup>
-		<TargetFrameworks>net452;netstandard2.0</TargetFrameworks>
-		<LangVersion>7.1</LangVersion>
-	</PropertyGroup>
-	<PropertyGroup>
-		<AssemblyTitle>Akka.Persistence.EventStore</AssemblyTitle>
-		<Description>Akka.NET Persistence journal store backed by EventStore.</Description>
+		<TargetFrameworks>$(NetFrameworkVersion);$(NetLibraryVersion)</TargetFrameworks>
 		<PackageTags>akka;actors;actor model;Akka;concurrency;persistence;eventsource;eventstore</PackageTags>
 		<GenerateDocumentationFile>false</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Akka" />
+		<PackageReference Include="Akka.Persistence" />
+		<PackageReference Include="EventStore.Client" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<EmbeddedResource Include="reference.conf" />
 	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="Akka" Version="$(AkkaVersion)" />
-		<PackageReference Include="Akka.Persistence" Version="$(AkkaVersion)" />
-	</ItemGroup>
-
-	<ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
-		<PackageReference Include="EventStore.Client" Version="5.*" />
-	</ItemGroup>
-
-	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-		<PackageReference Include="EventStore.Client" Version="5.*" />
-	</ItemGroup>
-
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'net452' ">
-		<DefineConstants>$(DefineConstants);SERIALIZATION</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-		<DefineConstants>$(DefineConstants);CORECLR</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-		<DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
-	</PropertyGroup>
-
 </Project>
