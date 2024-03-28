@@ -27,7 +27,9 @@ namespace Akka.Persistence.EventStore.Tests
         private DockerClient _client;
         private readonly string _eventStoreContainerName = $"es-{Guid.NewGuid():N}";
         private static readonly Random Random;
-        const string EventStoreImage = "eventstore/eventstore";
+        private const string ImageName = "eventstore/eventstore";
+        private const string Tag = "release-5.0.9";
+        const string EventStoreImage = ImageName + ":" + Tag;
         private int _restartCount = 0;
         private int _httpPort;
 
@@ -64,13 +66,24 @@ namespace Akka.Persistence.EventStore.Tests
                 }
 
                 _client = config.CreateClient();
-                var images =
-                        await _client.Images.ListImagesAsync(new ImagesListParameters {MatchName = EventStoreImage});
+                var images = await _client.Images.ListImagesAsync(new ImagesListParameters
+                {
+                    Filters = new Dictionary<string, IDictionary<string, bool>>
+                    {
+                        {
+                            "reference",
+                            new Dictionary<string, bool>
+                            {
+                                {EventStoreImage, true}
+                            }
+                        }
+                    }
+                }); 
                 if (images.Count == 0)
                 {
                     // No image found. Pulling latest ..
                     await _client.Images.CreateImageAsync(
-                        new ImagesCreateParameters {FromImage = EventStoreImage, Tag = "latest"}, null,
+                        new ImagesCreateParameters {FromImage = ImageName, Tag = Tag}, null,
                         IgnoreProgress.Forever);
                 }
                 //var containers = await this._client.Containers.ListContainersAsync(new ContainersListParameters { All = true });
