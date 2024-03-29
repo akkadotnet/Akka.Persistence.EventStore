@@ -17,9 +17,10 @@ jobs:
     name: Test-${{matrix.os}}
     runs-on: ${{matrix.os}}
 
+    # The docker image for v5.0.9 doesn't exist for windows, we can only test on linux.
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
       - name: "Checkout"
