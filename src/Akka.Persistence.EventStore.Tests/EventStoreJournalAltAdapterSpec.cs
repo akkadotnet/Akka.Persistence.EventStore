@@ -1,6 +1,7 @@
 using Akka.Configuration;
 using Akka.Persistence.TCK.Journal;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Akka.Persistence.EventStore.Tests
 {
@@ -10,31 +11,32 @@ namespace Akka.Persistence.EventStore.Tests
     {
         protected override bool SupportsRejectingNonSerializableObjects { get; } = false;
 
-        public EventStoreJournalAltAdapterSpec(DatabaseFixture databaseFixture)
-            : base(CreateSpecConfig(databaseFixture), nameof(EventStoreJournalAltAdapterSpec))
+        public EventStoreJournalAltAdapterSpec(DatabaseFixture databaseFixture, ITestOutputHelper output)
+            : base(CreateSpecConfig(databaseFixture), nameof(EventStoreJournalAltAdapterSpec), output)
         {
             Initialize();
         }
        
         private static Config CreateSpecConfig(DatabaseFixture databaseFixture)
         {
-            var specString = @"
-                akka.test.single-expect-default = 10s
-                akka.persistence {
-                    publish-plugin-commands = on
-                    journal {
-                        plugin = ""akka.persistence.journal.eventstore""
-                        eventstore {
-                            class = ""Akka.Persistence.EventStore.Journal.EventStoreJournal, Akka.Persistence.EventStore""
-                            connection-string = """ + databaseFixture.ConnectionString + @"""
-                            connection-name = ""EventStoreJournalSpec""
-                            read-batch-size = 500
-                            adapter = ""Akka.Persistence.EventStore.Tests.AltAdapter, Akka.Persistence.EventStore.Tests""
-                        }
-                    }
-                }";
-
-            return ConfigurationFactory.ParseString(specString);
+            return ConfigurationFactory.ParseString( 
+$$"""
+akka.loglevel = DEBUG
+akka.test.single-expect-default = 10s
+akka.persistence {
+   publish-plugin-commands = on
+   journal {
+       plugin = "akka.persistence.journal.eventstore"
+       eventstore {
+           class = "Akka.Persistence.EventStore.Journal.EventStoreJournal, Akka.Persistence.EventStore"
+           connection-string = "{{databaseFixture.ConnectionString}}"
+           connection-name = "EventStoreJournalSpec"
+           read-batch-size = 500
+           adapter = "{{typeof(AltEventAdapter).AssemblyQualifiedName}}"
+       }
+   }
+}
+""").WithFallback(DefaultConfig);
         }
     }
 }
