@@ -18,7 +18,7 @@ EventAdapter interface change (see README)</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup>
     <NetLibraryVersion>netstandard2.0</NetLibraryVersion>
-    <NetFrameworkVersion>net452</NetFrameworkVersion>
+    <NetFrameworkVersion>net472</NetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Label="Build">
     <LangVersion>latest</LangVersion>
