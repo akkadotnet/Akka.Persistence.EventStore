@@ -66,19 +66,21 @@ namespace Akka.Persistence.EventStore.Journal
 
         private bool AwaitingConnection(object message)
         {
-            return message.Match()
-                          .With<Status.Success>(success =>
-                          {
-                              UnbecomeStacked();
-                              Stash.UnstashAll();
-                          })
-                          .With<Status.Failure>(fail =>
-                          {
-                              _log.Error(fail.Cause, "Failure during {0} initialization.", Self);
-                              Context.Stop(Self);
-                          })
-                          .Default(_ => Stash.Stash())
-                          .WasHandled;
+            switch (message)
+            {
+                case Status.Success:
+                    UnbecomeStacked();
+                    Stash.UnstashAll();
+                    break;
+                case Status.Failure fail:
+                    _log.Error(fail.Cause, "Failure during {0} initialization.", Self);
+                    Context.Stop(Self);
+                    break;
+                default:
+                    Stash.Stash();
+                    break;
+            }
+            return true;
         }
 
         private IEventAdapter BuildDefaultJournalAdapter()
@@ -289,12 +291,23 @@ namespace Akka.Persistence.EventStore.Journal
 
         protected override bool ReceivePluginInternal(object message)
         {
-            return message.Match()
-                          .With<ReplayTaggedMessages>(StartTaggedSubscription)
-                          .With<SubscribePersistenceId>(StartPersistenceIdSubscription)
-                          .With<SubscribeAllPersistenceIds>(SubscribeAllPersistenceIdsHandler)
-                          .With<Unsubscribe>(RemoveSubscriber)
-                          .WasHandled;
+            switch (message)
+            {
+                case ReplayTaggedMessages msg:
+                    StartTaggedSubscription(msg);
+                    return true;
+                case SubscribePersistenceId msg:
+                    StartPersistenceIdSubscription(msg);
+                    return true;
+                case SubscribeAllPersistenceIds msg:
+                    SubscribeAllPersistenceIdsHandler(msg);
+                    return true;
+                case Unsubscribe msg:
+                    RemoveSubscriber(msg);
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void StartPersistenceIdSubscription(SubscribePersistenceId sub)

@@ -25,45 +25,51 @@ namespace Akka.Persistence.EventStore.Query.Publishers
 
         protected override bool Receive(object message)
         {
-            return message
-                   .Match()
-                   .With<Request>(_ =>
-                   {
-                       _journalRef.Tell(SubscribeAllPersistenceIds.Instance);
-                       Become(Active);
-                   })
-                   .With<Cancel>(_ => { Context.Stop(Self); })
-                   .WasHandled;
+            switch (message)
+            {
+                case Request:
+                    _journalRef.Tell(SubscribeAllPersistenceIds.Instance);
+                    Become(Active);
+                    return true;
+                case Cancel:
+                    Context.Stop(Self);
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private bool Active(object message)
         {
-            return message
-                   .Match()
-                   .With<CaughtUp>(_ =>
-                   {
-                       _isCaughtUp = true;
-                       _buffer.DeliverBuffer(TotalDemand);
-                       if (!_isLive && _buffer.IsEmpty)
-                           OnCompleteThenStop();
-                   })
-                   .With<SubscriptionDroppedException>(OnErrorThenStop)
-                   .With<IPersistentRepresentation>(@event =>
-                   {
-                       _buffer.Add(@event.PersistenceId);
-                       _buffer.DeliverBuffer(TotalDemand);
+            switch (message)
+            {
+                case CaughtUp:
+                    _isCaughtUp = true;
+                    _buffer.DeliverBuffer(TotalDemand);
+                    if (!_isLive && _buffer.IsEmpty)
+                        OnCompleteThenStop();
+                    return true;
+                case SubscriptionDroppedException ex:
+                    OnErrorThenStop(ex);
+                    return true;
+                case IPersistentRepresentation @event:
+                    _buffer.Add(@event.PersistenceId);
+                    _buffer.DeliverBuffer(TotalDemand);
 
-                       if (_isCaughtUp && !_isLive && _buffer.IsEmpty)
-                           OnCompleteThenStop();
-                   })
-                   .With<Request>(_ =>
-                   {
-                       _buffer.DeliverBuffer(TotalDemand);
-                       if (_isCaughtUp && !_isLive && _buffer.IsEmpty)
-                           OnCompleteThenStop();
-                   })
-                   .With<Cancel>(_ => Context.Stop(Self))
-                   .WasHandled;
+                    if (_isCaughtUp && !_isLive && _buffer.IsEmpty)
+                        OnCompleteThenStop();
+                    return true;
+                case Request:
+                    _buffer.DeliverBuffer(TotalDemand);
+                    if (_isCaughtUp && !_isLive && _buffer.IsEmpty)
+                        OnCompleteThenStop();
+                    return true;
+                case Cancel:
+                    Context.Stop(Self);
+                    return true;
+                default:
+                    return false;
+            }
         }
     }
 }

@@ -51,17 +51,27 @@ namespace Akka.Persistence.EventStore.Query.Publishers
 
         protected override bool Receive(object message)
         {
-            return message.Match()
-                          .With<SubscriptionDroppedException>(OnSubscriptionDropped)
-                          .With<CaughtUp>(_ =>
-                          {
-                              _isCaughtUp = true;
-                              MaybeReply();
-                          })
-                          .With<ReplayedTaggedMessage>(OnReplayedMessage)
-                          .With<Request>(OnRequest)
-                          .With<Cancel>(OnCancel)
-                          .WasHandled;
+            switch (message)
+            {
+                case SubscriptionDroppedException ex:
+                    OnSubscriptionDropped(ex);
+                    return true;
+                case CaughtUp:
+                    _isCaughtUp = true;
+                    MaybeReply();
+                    return true;
+                case ReplayedTaggedMessage msg:
+                    OnReplayedMessage(msg);
+                    return true;
+                case Request req:
+                    OnRequest(req);
+                    return true;
+                case Cancel c:
+                    OnCancel(c);
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void OnSubscriptionDropped(SubscriptionDroppedException cause)
