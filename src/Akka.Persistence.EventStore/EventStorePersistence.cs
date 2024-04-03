@@ -1,45 +1,54 @@
 ﻿using Akka.Actor;
 using Akka.Configuration;
-using System;
+using Akka.Persistence.EventStore.Journal;
+using Akka.Persistence.EventStore.Snapshot;
 
-namespace Akka.Persistence.EventStore
+namespace Akka.Persistence.EventStore;
+
+public class EventStorePersistence : IExtension
 {
-    public class EventStorePersistence : IExtension
+    public const string JournalConfigPath = "akka.persistence.journal.eventstore";
+    public const string SnapshotStoreConfigPath = "akka.persistence.snapshot-store.eventstore";
+    public const string QueryConfigPath = "akka.persistence.query.journal.eventstore";
+    public const string TenantConfigPath = "akka.persistence.eventstore.tenant";
+    
+    public static readonly Config DefaultJournalConfiguration;
+    public static readonly Config DefaultSnapshotConfiguration;
+    public static readonly Config DefaultQueryConfiguration;
+    public static readonly Config DefaultTenantConfiguration;
+    public static readonly Config DefaultConfiguration;
+    public static readonly Config DefaultJournalMappingConfiguration;
+    public static readonly Config DefaultSnapshotMappingConfiguration;
+    public static readonly Config DefaultQueryMappingConfiguration;
+
+    public readonly Config DefaultConfig = DefaultConfiguration;
+    public readonly Config DefaultJournalConfig = DefaultJournalConfiguration;
+    public readonly Config DefaultJournalMappingConfig = DefaultJournalMappingConfiguration;
+    public readonly Config DefaultSnapshotConfig = DefaultSnapshotConfiguration;
+    public readonly Config DefaultTenantConfig = DefaultTenantConfiguration;
+    public readonly Config DefaultSnapshotMappingConfig = DefaultSnapshotMappingConfiguration;
+    public readonly Config DefaultQueryConfig = DefaultQueryConfiguration;
+
+    static EventStorePersistence()
     {
-        public static Config DefaultConfiguration()
-        {
-            return ConfigurationFactory.FromResource<EventStorePersistence>("Akka.Persistence.EventStore.reference.conf");
-        }
+        var journalConfig = ConfigurationFactory.FromResource<EventStoreJournal>("Akka.Persistence.EventStore.persistence.conf");
+        var snapshotConfig = ConfigurationFactory.FromResource<EventStoreSnapshotStore>("Akka.Persistence.EventStore.snapshot.conf");
 
-        public static EventStorePersistence Get(ActorSystem system)
-        {
-            return system.WithExtension<EventStorePersistence, EventStorePersistenceProvider>();
-        }
+        DefaultConfiguration = journalConfig.WithFallback(snapshotConfig);
 
-        public EventStorePersistence(ExtendedActorSystem system)
-        {
-            if (system == null)
-                throw new ArgumentNullException(nameof(system));
+        DefaultJournalConfiguration = DefaultConfiguration.GetConfig(JournalConfigPath);
+        DefaultSnapshotConfiguration = DefaultConfiguration.GetConfig(SnapshotStoreConfigPath);
+        DefaultQueryConfiguration = DefaultConfiguration.GetConfig(QueryConfigPath);
+        DefaultTenantConfiguration = DefaultConfiguration.GetConfig(TenantConfigPath);
 
-            // Initialize fallback configuration defaults
-            system.Settings.InjectTopLevelFallback(DefaultConfiguration());
-
-            // Read config
-            var journalConfig = system.Settings.Config.GetConfig("akka.persistence.journal.eventstore");
-            JournalSettings = new EventStoreJournalSettings(journalConfig);
-            var snapshotConfig = system.Settings.Config.GetConfig("akka.persistence.snapshot-store.eventstore");
-            SnapshotStoreSettings = new EventStoreSnapshotSettings(snapshotConfig);
-        }
-
-        /// <summary>
-        /// The settings for the EventStore journal.
-        /// </summary>
-        public EventStoreJournalSettings JournalSettings { get; }
-        
-        /// <summary>
-        /// The settings for the EventStore snapshot store.
-        /// </summary>
-        public EventStoreSnapshotSettings SnapshotStoreSettings { get; }
-
+        DefaultJournalMappingConfiguration = DefaultJournalConfiguration.GetConfig("default");
+        DefaultSnapshotMappingConfiguration = DefaultSnapshotConfiguration.GetConfig("default");
+        DefaultQueryMappingConfiguration = DefaultQueryConfiguration.GetConfig("default");
     }
+
+    public EventStorePersistence(ActorSystem system) 
+        => system.Settings.InjectTopLevelFallback(DefaultConfiguration);
+    
+    public static EventStorePersistence Get(ActorSystem system) 
+        => system.WithExtension<EventStorePersistence, EventStorePersistenceProvider>();
 }

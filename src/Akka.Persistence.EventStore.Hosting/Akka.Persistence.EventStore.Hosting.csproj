@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(NetLibraryVersion)</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <AssemblyTitle>Akka.Persistence.EventStore.Hosting</AssemblyTitle>
+        <Description>Akka.Persistence.EventStore Microsoft.Extensions.Hosting support.</Description>
+        <PackageTags>akka;actors;actor model;persistence;eventstore</PackageTags>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Akka.Persistence.EventStore\Akka.Persistence.EventStore.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Akka.Persistence.Hosting"/>
+    </ItemGroup>
+
+</Project>

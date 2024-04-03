@@ -1,42 +1,22 @@
-using Akka.Configuration;
 using Akka.Persistence.TCK.Journal;
 using Xunit;
-using Xunit.Abstractions;
 
-namespace Akka.Persistence.EventStore.Tests
+namespace Akka.Persistence.EventStore.Tests;
+
+[Collection("EventStoreDatabaseSpec")]
+public class EventStoreJournalAltAdapterSpec : JournalSpec
 {
+    protected override bool SupportsRejectingNonSerializableObjects => false;
+    
+    // TODO: hack. Replace when https://github.com/akkadotnet/akka.net/issues/3811
+    protected override bool SupportsSerialization => false;
 
-    [Collection("EventStoreSpec")]
-    public class EventStoreJournalAltAdapterSpec : JournalSpec, IClassFixture<DatabaseFixture>
+    public EventStoreJournalAltAdapterSpec(DatabaseFixture databaseFixture)
+        : base(EventStoreConfiguration.Build(
+            databaseFixture,
+            "alt-journal-spec",
+            typeof(TestMessageAdapter)), nameof(EventStoreJournalSpec))
     {
-        protected override bool SupportsRejectingNonSerializableObjects { get; } = false;
-
-        public EventStoreJournalAltAdapterSpec(DatabaseFixture databaseFixture, ITestOutputHelper output)
-            : base(CreateSpecConfig(databaseFixture), nameof(EventStoreJournalAltAdapterSpec), output)
-        {
-            Initialize();
-        }
-       
-        private static Config CreateSpecConfig(DatabaseFixture databaseFixture)
-        {
-            return ConfigurationFactory.ParseString( 
-$$"""
-akka.loglevel = DEBUG
-akka.test.single-expect-default = 10s
-akka.persistence {
-   publish-plugin-commands = on
-   journal {
-       plugin = "akka.persistence.journal.eventstore"
-       eventstore {
-           class = "Akka.Persistence.EventStore.Journal.EventStoreJournal, Akka.Persistence.EventStore"
-           connection-string = "{{databaseFixture.ConnectionString}}"
-           connection-name = "EventStoreJournalSpec"
-           read-batch-size = 500
-           adapter = "{{typeof(AltEventAdapter).AssemblyQualifiedName}}"
-       }
-   }
-}
-""").WithFallback(DefaultConfig);
-        }
+        Initialize();
     }
 }

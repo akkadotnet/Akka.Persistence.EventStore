@@ -1,7 +1,8 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AkkaVersion>1.4.0-beta1</AkkaVersion>
+    <AkkaVersion>1.5.18</AkkaVersion>
+    <EventStoreVersion>23.2.1</EventStoreVersion>
     <NBenchVersion>1.2.2</NBenchVersion>
     <XunitVersion>2.4.1</XunitVersion>
     <TestSdkVersion>15.9.0</TestSdkVersion>
@@ -9,22 +10,29 @@
   <!-- Akka.NET Package Versions -->
   <ItemGroup>
     <PackageVersion Include="Akka.Hosting" Version="1.5.6.1" />
+    <PackageVersion Include="Akka.Persistence.Hosting" Version="1.5.18" />
     <PackageVersion Include="NuGet.Frameworks" Version="6.9.1" />
-    <PackageVersion Include="Akka" Version="$(AkkaVersion)" />
+    <PackageVersion Include="Akka" Version="1.5.18" />
     <PackageVersion Include="Akka.Persistence" Version="$(AkkaVersion)" />
     <PackageVersion Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
-    <PackageVersion Include="EventStore.Client" Version="[5.0.0,)" />
+  </ItemGroup>
+  <!-- EventStore Package Versions -->
+  <ItemGroup>
+    <PackageVersion Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="$(EventStoreVersion)"/>
+    <PackageVersion Include="EventStore.Client.Grpc.ProjectionManagement" Version="$(EventStoreVersion)"/>
+    <PackageVersion Include="EventStore.Client.Grpc.Streams" Version="$(EventStoreVersion)"/>
   </ItemGroup>
   <!-- Testing Utilities -->
   <ItemGroup>
-    <PackageVersion Include="Akka.Persistence.TCK" Version="$(AkkaVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="2.0.1" />
+    <PackageVersion Include="Akka.Persistence.TCK" Version="1.5.18" />
+    <PackageVersion Include="Akka.Hosting.TestKit" Version="1.5.18" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
     <PackageVersion Include="xunit" Version="2.7.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.7" />
     <PackageVersion Include="FluentAssertions" Version="6.12.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
-    <PackageVersion Include="Docker.DotNet" Version="3.125.12" />
+    <PackageVersion Include="Docker.DotNet" Version="3.125.15" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Copyright>Copyright © 2013-2024 Akka.NET Project</Copyright>
     <NoWarn>$(NoWarn);CS1591;NU1701;CA1707;</NoWarn>
-    <VersionPrefix>1.4.0</VersionPrefix>
+    <VersionPrefix>1.5.0</VersionPrefix>
     <Authors>Akka.NET Team</Authors>
     <PackageProjectUrl>https://github.com/akkadotnet/Akka.Persistence.EventStore</PackageProjectUrl>
     <PackageReleaseNotes>Serialization changes to match 1.4 API
@@ -17,7 +17,7 @@ EventAdapter interface change (see README)</PackageReleaseNotes>
     <PackageIcon>logo.png</PackageIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <NetLibraryVersion>netstandard2.0</NetLibraryVersion>
+    <NetLibraryVersion>net6.0</NetLibraryVersion>
     <NetFrameworkVersion>net472</NetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Label="Build">
