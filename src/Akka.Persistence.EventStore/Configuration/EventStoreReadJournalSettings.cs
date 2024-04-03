@@ -1,5 +1,4 @@
-﻿using System;
-using Akka.Configuration;
+﻿using Akka.Configuration;
 
 namespace Akka.Persistence.EventStore.Configuration;
 

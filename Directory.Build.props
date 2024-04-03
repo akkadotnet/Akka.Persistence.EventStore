@@ -1,0 +1,41 @@
+<Project>
+  <PropertyGroup>
+    <Copyright>Copyright © 2013-2024 Akka.NET Project</Copyright>
+    <NoWarn>$(NoWarn);CS1591;NU1701;CA1707;</NoWarn>
+    <VersionPrefix>1.5.0</VersionPrefix>
+    <Authors>Akka.NET Team</Authors>
+    <PackageProjectUrl>https://github.com/akkadotnet/Akka.Persistence.EventStore</PackageProjectUrl>
+    <PackageReleaseNotes>Serialization changes to match 1.4 API
+Upgrade to Akka 1.4 dependency
+Upgrade to EventStore 5 dependency
+netstandard2 and netfx452 (from netstandard1.6 and netfx45)
+
+**Breaking Changes**
+EventAdapter interface change (see README)</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageIcon>logo.png</PackageIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <NetLibraryVersion>net6.0</NetLibraryVersion>
+    <NetFrameworkVersion>net472</NetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Label="Build">
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)\logo.png" Pack="true" Visible="false" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" Visible="false" PackagePath="\" />
+  </ItemGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == '$(NetFrameworkVersion)' ">
+    <DefineConstants>$(DefineConstants);SERIALIZATION</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == '$(NetLibraryVersion)' ">
+    <DefineConstants>$(DefineConstants);CORECLR</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+  </PropertyGroup>
+</Project>

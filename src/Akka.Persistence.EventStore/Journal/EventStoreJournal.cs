@@ -1,11 +1,7 @@
 ﻿using Akka.Actor;
 using Akka.Persistence.Journal;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Akka.Configuration;
 using Akka.Event;
 using Akka.Persistence.EventStore.Configuration;

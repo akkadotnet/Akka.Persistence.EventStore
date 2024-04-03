@@ -1,11 +1,7 @@
 ﻿using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
@@ -15,8 +11,9 @@ public class DatabaseFixture : IAsyncLifetime
     private DockerClient? _client;
     private readonly string _eventStoreContainerName = $"es-{Guid.NewGuid():N}";
     private static readonly Random Random;
-    private const string EventStoreImage = "eventstore/eventstore";
-    private const string EventStoreImageTag = "23.10.0-jammy";
+    private const string ImageName = "eventstore/eventstore";
+    private const string Tag = "23.10.0-jammy";
+    private const string EventStoreImage = ImageName + ":" + Tag;
     private int _httpPort;
 
     static DatabaseFixture()
@@ -71,7 +68,7 @@ public class DatabaseFixture : IAsyncLifetime
             if (images.Count == 0)
             {
                 await _client.Images.CreateImageAsync(
-                    new ImagesCreateParameters { FromImage = EventStoreImage, Tag = EventStoreImageTag }, null,
+                    new ImagesCreateParameters { FromImage = ImageName, Tag = Tag }, null,
                     new Progress<JSONMessage>(message =>
                     {
                         Console.WriteLine(!string.IsNullOrEmpty(message.ErrorMessage)

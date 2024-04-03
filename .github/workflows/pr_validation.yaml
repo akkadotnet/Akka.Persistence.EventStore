@@ -1,0 +1,57 @@
+name: pr_validation
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+      - main
+  pull_request:
+    branches:
+      - master
+      - dev
+      - main
+
+jobs:
+  test:
+    name: Test-${{matrix.os}}
+    runs-on: ${{matrix.os}}
+
+    # The docker image for v5.0.9 doesn't exist for windows, we can only test on linux.
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4.1.1
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: "Install .NET SDK"
+        uses: actions/setup-dotnet@v4.0.0
+        with:
+          global-json-file: "./global.json"
+
+      - name: "Update release notes"
+        shell: pwsh
+        run: |
+          ./build.ps1
+
+      - name: "dotnet build"
+        run: dotnet build -c Release
+
+      # .NET Framework tests can't run reliably on Linux, so we only do .NET 8
+
+      - name: "dotnet test"
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            dotnet test -c Release --framework net8.0
+          else
+            dotnet test -c Release
+          fi
+
+      - name: "dotnet pack"
+        run: dotnet pack -c Release

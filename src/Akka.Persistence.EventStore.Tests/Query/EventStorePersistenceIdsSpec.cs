@@ -1,4 +1,3 @@
-using System;
 using Akka.Persistence.Query;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.TCK.Query;

@@ -7,13 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Akka.Hosting.TestKit" />
-
-        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <ProjectReference Include="..\Akka.Persistence.EventStore.Hosting\Akka.Persistence.EventStore.Hosting.csproj"/>
+        <ProjectReference Include="..\Akka.Persistence.EventStore.Tests\Akka.Persistence.EventStore.Tests.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Akka.Persistence.EventStore.Hosting\Akka.Persistence.EventStore.Hosting.csproj" />
-      <ProjectReference Include="..\Akka.Persistence.EventStore.Tests\Akka.Persistence.EventStore.Tests.csproj" />
+        <PackageReference Include="Akka.Hosting.TestKit"/>
+
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     </ItemGroup>
+
 </Project>

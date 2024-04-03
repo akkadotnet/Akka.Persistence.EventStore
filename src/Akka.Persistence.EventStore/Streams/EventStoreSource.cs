@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -65,7 +61,7 @@ public static class EventStoreSource
         }
     }
     
-    public static Source<PersistentSubscriptionMessage, ICancelable> ForPersistentSubscription(
+    public static Source<PersistentSubscriptionEvent, ICancelable> ForPersistentSubscription(
         EventStorePersistentSubscriptionsClient subscriptionsClient,
         string streamName,
         string groupName,
@@ -84,14 +80,43 @@ public static class EventStoreSource
         return Create()
             .MapMaterializedValue(_ => cancelable);
 
-        Source<PersistentSubscriptionMessage, NotUsed> Create()
+        Source<PersistentSubscriptionEvent, NotUsed> Create()
         {
-            return Source.From(() => new EventStorePersistentSubscriptionEnumerable(
+            return Source.From(StartIterator);
+        }
+        
+        async IAsyncEnumerable<PersistentSubscriptionEvent> StartIterator()
+        {
+            var subscription = subscriptionsClient.SubscribeToStream(
                 streamName,
                 groupName,
-                subscriptionsClient,
                 maxBufferSize,
-                cancelable.Token));
+                cancellationToken:cancelable.Token);
+
+            await using var enumerator = subscription.GetAsyncEnumerator(cancelable.Token);
+            
+            while (!cancelable.IsCancellationRequested)
+            {
+                try
+                {
+                    if (!await enumerator.MoveNextAsync(cancelable.Token))
+                        yield break;
+                }
+                catch (OperationCanceledException)
+                {
+                    yield break;
+                }
+
+                var message = enumerator.Current;
+
+                yield return new PersistentSubscriptionEvent(
+                    message,
+                    () => subscription.Ack(message),
+                    reason => subscription.Nack(
+                        PersistentSubscriptionNakEventAction.Unknown,
+                        reason,
+                        message));
+            }
         }
     }
     

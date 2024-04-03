@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Immutable;
-using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Persistence.EventStore.Streams;
 using Akka.Streams;
@@ -36,11 +34,11 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
 
         await firstMessage.Ack();
         
-        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-2");
+        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2");
 
         await secondMessage.Ack();
 
@@ -58,7 +56,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
 
         await firstMessage.Ack();
 
@@ -73,7 +71,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
                     $"{streamName}-2",
                     "{}"u8.ToArray())));
         
-        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-2");
+        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2");
 
         await secondMessage.Ack();
         
@@ -95,7 +93,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
         {
             var itemId = i;
             
-            var msg = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-{itemId}");
+            var msg = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-{itemId}");
 
             await msg.Ack();
         }
@@ -118,7 +116,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
 
         await firstMessage.Ack();
 
@@ -137,7 +135,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
                     $"{streamName}-2",
                     "{}"u8.ToArray())));
         
-        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-2");
+        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2");
 
         await secondMessage.Ack();
         
@@ -155,7 +153,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
 
         await firstMessage.Ack();
 
@@ -175,7 +173,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionMessage>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
 
         await firstMessage.Ack();
 
@@ -196,7 +194,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
         subscriptionAfterCancel.Connections.Should().HaveCount(0);
     }
 
-    private async Task<(ICancelable, TestSubscriber.Probe<PersistentSubscriptionMessage>)> Setup(
+    private async Task<(ICancelable, TestSubscriber.Probe<PersistentSubscriptionEvent>)> Setup(
         string streamName,
         int numberOfEvents,
         RestartSettings? restartWith = null)
@@ -225,6 +223,6 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
                 streamName,
                 restartWith: restartWith);
         
-        return stream.ToMaterialized(this.SinkProbe<PersistentSubscriptionMessage>(), Keep.Both).Run(Sys.Materializer());
+        return stream.ToMaterialized(this.SinkProbe<PersistentSubscriptionEvent>(), Keep.Both).Run(Sys.Materializer());
     }
 }

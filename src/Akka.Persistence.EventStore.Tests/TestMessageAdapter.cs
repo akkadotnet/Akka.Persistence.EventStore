@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Threading.Tasks;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.EventStore.Serialization;
 using EventStore.Client;
@@ -9,11 +8,13 @@ namespace Akka.Persistence.EventStore.Tests;
 public class TestMessageAdapter(Akka.Serialization.Serialization serialization, ISettingsWithAdapter settings) 
     : DefaultMessageAdapter(serialization, settings)
 {
+    private readonly string _tenant = settings.Tenant;
+    
     protected override IStoredEventMetadata GetEventMetadata(
         IPersistentRepresentation message,
         IImmutableSet<string> tags)
     {
-        return new TestEventMetadata(message, tags, settings.Tenant);
+        return new TestEventMetadata(message, tags, _tenant);
     }
 
     protected override async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
@@ -38,6 +39,6 @@ public class TestMessageAdapter(Akka.Serialization.Serialization serialization, 
             ExtraProp = "test";
         }
 
-        public string ExtraProp { get; set; }
+        public string? ExtraProp { get; set; }
     }
 }

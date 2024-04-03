@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Immutable;
-using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.Journal;

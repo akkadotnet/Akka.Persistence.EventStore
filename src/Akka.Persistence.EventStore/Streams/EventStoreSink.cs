@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Akka.Streams.Dsl;
 using EventStore.Client;
 

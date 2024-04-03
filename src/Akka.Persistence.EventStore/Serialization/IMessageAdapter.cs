@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using EventStore.Client;
 
 namespace Akka.Persistence.EventStore.Serialization;

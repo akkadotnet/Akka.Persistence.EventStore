@@ -69,7 +69,7 @@ following information:
   "sender": "",
   "sequenceNr": 5,
   "writerGuid": "f8706bba-52a7-4326-a760-990c7f657c46",
-  "journalType": "WriteJournal"
+  "journalType": "WriteJournal",
   "timestamp": 123456789,
   "tenant": "",
   "tags": []
@@ -203,32 +203,7 @@ to create the projections yourself if you want.
 
 ## Breaking Changes in 1.5
 
-1. The `Akka.Persistence.EventStore.Query` package has been removed and the read journal has been moved into `Akka.Persistence.EventStore`.
-2. The legacy adapter has been removed.
-3. The default adapter will now use the serializer used by akka.
-4. The read journal has been changed to use eventstore projections that needs to be created.
-
-## Breaking Changes in 1.4
-
-1. The `DefaultEventAdapter` does not support internal Akka types (e.g. actor refs) and thus specs are 
-failing. This has been updated to use `Akka.Serialization.NewtonSoftJsonSerializer`. If this does not 
-affect you, or you have projections that depend on old configuration, use the following keys:
-
-```
-akka.persistence.journal.eventstore.adapter = legacy
-akka.persistence.snapshot-store.eventstore.adapter = legacy
-```
-
-2. Adapter API has been changed to more correctly serialize the Sender actor ref.
-
-Derived event adapter classes requires a minor interface change, namely removed
-`Func<string, IActorRef>` argument. The Akka built-in Persistent serialization mechanism 
-uses `System.Provider.ResolveActorRef` and `Akka.Serialization.Serialization.SerializedActorPath` 
-to accomplish this. Legacy behavior is preserved by using `System.ActorSelection` rather 
-than the journal's actor context.
+This is complete rewrite of the plugin to use EventStore.Client.Grpc. This means that the plugin is not compatible with previous versions of the plugin.
 
 ## Maintainer
-- [ryandanthony](https://github.com/ryandanthony)
-- [mjaric](https://github.com/mjaric)
-- [ptjhuang](https://github.com/ptjhuang)
 - [MattiasJakobsson](https://github.com/MattiasJakobsson)

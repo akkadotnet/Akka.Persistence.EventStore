@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.EventStore.Serialization;
@@ -93,7 +91,7 @@ public static class EventStoreStreamSourceExtensions
     }
     
     public static Source<DeserializedEvent<TResult>, ICancelable> DeserializeWith<TResult>(
-        this Source<PersistentSubscriptionMessage, ICancelable> source,
+        this Source<PersistentSubscriptionEvent, ICancelable> source,
         Func<ResolvedEvent, Task<TResult>> deserializer)
     {
         return source
@@ -101,12 +99,12 @@ public static class EventStoreStreamSourceExtensions
             {
                 var deserialized = await deserializer(msg.Event);
 
-                return new DeserializedEvent<TResult>(deserialized, msg.Ack, msg.Nack, msg.RetryCount);
+                return new DeserializedEvent<TResult>(deserialized, msg.Ack, msg.Nack);
             });
     }
     
     public static Source<DeserializedEvent<IPersistentRepresentation?>, ICancelable> DeserializeWith(
-        this Source<PersistentSubscriptionMessage, ICancelable> source,
+        this Source<PersistentSubscriptionEvent, ICancelable> source,
         IMessageAdapter adapter)
     {
         return source
@@ -130,8 +128,7 @@ public static class EventStoreStreamSourceExtensions
     public record DeserializedEvent<TEvent>(
         TEvent Event, 
         Func<Task> Ack,
-        Func<string, Task> Nack, 
-        int? RetryCount);
+        Func<string, Task> Nack);
     
     private class ReplayCompletionFilter<TSource>(IEventStoreStreamFilter<TSource> innerFilter)
         : IEventStoreStreamFilter<ReplayCompletion<TSource>>

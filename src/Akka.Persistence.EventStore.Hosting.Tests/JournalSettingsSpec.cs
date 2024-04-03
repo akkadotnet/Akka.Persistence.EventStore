@@ -1,7 +1,7 @@
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
 using FluentAssertions;
-using LanguageExt.UnitsOfMeasure;
+using FluentAssertions.Extensions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;

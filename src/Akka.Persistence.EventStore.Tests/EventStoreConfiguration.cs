@@ -1,4 +1,3 @@
-using System;
 using Akka.Configuration;
 
 namespace Akka.Persistence.EventStore.Tests;

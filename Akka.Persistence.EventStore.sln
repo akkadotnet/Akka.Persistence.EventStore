@@ -7,12 +7,32 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Akka.Persistence.EventStore
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Akka.Persistence.EventStore.Tests", "src\Akka.Persistence.EventStore.Tests\Akka.Persistence.EventStore.Tests.csproj", "{D6605D9E-9866-429C-AD8F-EEDC8104DEEB}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{2842D2F3-7B85-476F-974E-1950C34B698C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution Files", "{F4AC94E7-D5F3-4B85-9810-A8BF02441883}"
 	ProjectSection(SolutionItems) = preProject
-		build.cmd = build.cmd
-		build.fsx = build.fsx
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		global.json = global.json
+		nuget.config = nuget.config
 		build.ps1 = build.ps1
-		build.sh = build.sh
+		README.md = README.md
+		RELEASE_NOTES.md = RELEASE_NOTES.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{96349315-C6BE-4888-B81A-9A46EF7CE685}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\bumpVersion.ps1 = scripts\bumpVersion.ps1
+		scripts\getReleaseNotes.ps1 = scripts\getReleaseNotes.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{DF2C9C02-9F0D-4FC8-8F72-234FD68FC918}"
+	ProjectSection(SolutionItems) = preProject
+		.github\dependabot.yaml = .github\dependabot.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{6017AE31-4718-413B-983E-EAF9D4B465C9}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\pr_validation.yaml = .github\workflows\pr_validation.yaml
+		.github\workflows\publish_nuget.yml = .github\workflows\publish_nuget.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.EventStore.Hosting", "src\Akka.Persistence.EventStore.Hosting\Akka.Persistence.EventStore.Hosting.csproj", "{54F30A00-FBC7-4763-A2D9-86373158210B}"
@@ -83,5 +103,10 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A606AD52-05AA-47CF-B84B-2CD1F880A183}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{96349315-C6BE-4888-B81A-9A46EF7CE685} = {F4AC94E7-D5F3-4B85-9810-A8BF02441883}
+		{DF2C9C02-9F0D-4FC8-8F72-234FD68FC918} = {F4AC94E7-D5F3-4B85-9810-A8BF02441883}
+		{6017AE31-4718-413B-983E-EAF9D4B465C9} = {DF2C9C02-9F0D-4FC8-8F72-234FD68FC918}
 	EndGlobalSection
 EndGlobal

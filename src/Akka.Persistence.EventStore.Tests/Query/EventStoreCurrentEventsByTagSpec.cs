@@ -1,4 +1,3 @@
-using System;
 using Akka.Actor;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.Query;
@@ -6,7 +5,6 @@ using Akka.Persistence.TCK.Query;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using FluentAssertions;
-using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 

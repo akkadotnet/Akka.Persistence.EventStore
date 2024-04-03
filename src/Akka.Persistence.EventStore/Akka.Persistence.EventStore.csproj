@@ -1,38 +1,35 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\common.props" />
-	<PropertyGroup>
-		<LangVersion>latestmajor</LangVersion>
-		<TargetFramework>net8.0</TargetFramework>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
-	<PropertyGroup>
-		<AssemblyTitle>Akka.Persistence.EventStore</AssemblyTitle>
-		<Description>Akka.NET Persistence journal store backed by EventStore.</Description>
-		<PackageTags>akka;actors;actor model;Akka;concurrency;persistence;eventsource;eventstore</PackageTags>
-		<GenerateDocumentationFile>false</GenerateDocumentationFile>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	</PropertyGroup>
+    <PropertyGroup>
+        <LangVersion>latestmajor</LangVersion>
+        <TargetFramework>$(NetLibraryVersion)</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <PropertyGroup>
+        <AssemblyTitle>Akka.Persistence.EventStore</AssemblyTitle>
+        <Description>Akka.NET Persistence journal store backed by EventStore.</Description>
+        <PackageTags>akka;actors;actor model;Akka;concurrency;persistence;eventsource;eventstore</PackageTags>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Include="Projections\allPersistedEventsProjection.js"/>
+        <EmbeddedResource Include="Projections\allPersistenceIdsProjection.js"/>
+        <EmbeddedResource Include="Projections\taggedProjection.js"/>
+        <EmbeddedResource Include="persistence.conf"/>
+        <EmbeddedResource Include="snapshot.conf"/>
+    </ItemGroup>
 
-	<ItemGroup>
-		<EmbeddedResource Include="Projections\allPersistedEventsProjection.js" />
-		<EmbeddedResource Include="Projections\allPersistenceIdsProjection.js" />
-		<EmbeddedResource Include="Projections\taggedProjection.js" />
-		<EmbeddedResource Include="persistence.conf" />
-		<EmbeddedResource Include="snapshot.conf" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions" Version="23.1.0" />
-		<PackageReference Include="Akka" Version="1.5.16" />
-		<PackageReference Include="Akka.Persistence" Version="1.5.16" />
-		<PackageReference Include="Akka.Persistence.Query" Version="1.5.16" />
-		<PackageReference Include="EventStore.Client.Grpc.ProjectionManagement" Version="23.1.0" />
-		<PackageReference Include="LanguageExt.Core" Version="4.4.7" />
-		<PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.1.0" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Akka"/>
+        <PackageReference Include="Akka.Persistence"/>
+        <PackageReference Include="Akka.Persistence.Query"/>
+        <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions"/>
+        <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement"/>
+        <PackageReference Include="EventStore.Client.Grpc.Streams"/>
+    </ItemGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-		<DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
-	</PropertyGroup>
-
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+    </PropertyGroup>
 </Project>
