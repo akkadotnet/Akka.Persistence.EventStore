@@ -203,7 +203,7 @@ to create the projections yourself if you want.
 
 ## Breaking Changes in 1.5
 
-This is complete rewrite of the plugin to use EventStore.Client.Grpc. This means that the plugin is not compatible with previous versions of the plugin.
+This is a complete rewrite of the plugin to use EventStore.Client.Grpc. This means that the plugin is not compatible with previous versions.
 
 ## Maintainer
 - [MattiasJakobsson](https://github.com/MattiasJakobsson)
