@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Copyright>Copyright © 2013-2024 Akka.NET Project</Copyright>
     <NoWarn>$(NoWarn);CS1591;NU1701;CA1707;</NoWarn>
-    <VersionPrefix>1.5.0</VersionPrefix>
+    <VersionPrefix>1.5.18</VersionPrefix>
     <Authors>Akka.NET Team</Authors>
     <PackageProjectUrl>https://github.com/akkadotnet/Akka.Persistence.EventStore</PackageProjectUrl>
     <PackageReleaseNotes>Serialization changes to match 1.4 API
