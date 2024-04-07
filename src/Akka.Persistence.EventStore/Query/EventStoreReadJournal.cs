@@ -130,7 +130,7 @@ public class EventStoreReadJournal
             filter,
             refreshInterval,
             resolveLinkTos,
-            TimeSpan.FromMilliseconds(300))
+            TimeSpan.FromMilliseconds(500))
         .DeSerializeEventWith(_adapter)
         .Filter(filter)
         .SelectMany(r =>
