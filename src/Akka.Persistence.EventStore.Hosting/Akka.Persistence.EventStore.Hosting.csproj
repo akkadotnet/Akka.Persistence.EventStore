@@ -11,7 +11,6 @@
         <Description>Akka.Persistence.EventStore Microsoft.Extensions.Hosting support.</Description>
         <PackageTags>akka;actors;actor model;persistence;eventstore</PackageTags>
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
