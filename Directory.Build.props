@@ -18,7 +18,6 @@ EventAdapter interface change (see README)</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup>
     <NetLibraryVersion>net6.0</NetLibraryVersion>
-    <NetFrameworkVersion>net472</NetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Label="Build">
     <LangVersion>latest</LangVersion>
@@ -29,9 +28,6 @@ EventAdapter interface change (see README)</PackageReleaseNotes>
     <None Include="$(MSBuildThisFileDirectory)\logo.png" Pack="true" Visible="false" PackagePath="\" />
     <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" Visible="false" PackagePath="\" />
   </ItemGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == '$(NetFrameworkVersion)' ">
-    <DefineConstants>$(DefineConstants);SERIALIZATION</DefineConstants>
-  </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == '$(NetLibraryVersion)' ">
     <DefineConstants>$(DefineConstants);CORECLR</DefineConstants>
   </PropertyGroup>
