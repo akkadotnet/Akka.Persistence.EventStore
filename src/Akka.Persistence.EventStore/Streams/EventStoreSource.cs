@@ -7,26 +7,43 @@ namespace Akka.Persistence.EventStore.Streams;
 
 public static class EventStoreSource
 {
-    public static Source<ResolvedEvent, NotUsed> FromStream(
+    public static Source<ResolvedEvent, ICancelable> FromStream(
         EventStoreClient client,
         IEventStoreStreamOrigin from,
         TimeSpan? refreshInterval = null,
         bool resolveLinkTos = false,
-        TimeSpan? noEventGracePeriod = null)
+        TimeSpan? noEventGracePeriod = null,
+        RestartSettings? restartWith = null)
     {
-        return Source.From(StartIterator);
+        ICancelable cancelable = new Cancelable();
+
+        if (restartWith != null)
+        {
+            return RestartSource
+                .OnFailuresWithBackoff(Create, restartWith)
+                .MapMaterializedValue(_ => cancelable);
+        }
+
+        return Create()
+            .MapMaterializedValue(_ => cancelable);
+
+        Source<ResolvedEvent, NotUsed> Create()
+        {
+            return Source.From(StartIterator);
+        }
 
         async IAsyncEnumerable<ResolvedEvent> StartIterator()
         {
             var startPosition = from.From;
             
-            while (true)
+            while (!cancelable.IsCancellationRequested)
             {
                 var readResult = client.ReadStreamAsync(
                     from.Direction,
                     from.StreamName,
                     startPosition,
-                    resolveLinkTos: resolveLinkTos);
+                    resolveLinkTos: resolveLinkTos,
+                    cancellationToken: cancelable.Token);
 
                 var readState = await readResult.ReadState;
 
@@ -34,8 +51,22 @@ public static class EventStoreSource
                 
                 if (readState == ReadState.Ok)
                 {
-                    await foreach (var evnt in readResult)
+                    await using var enumerator = readResult.GetAsyncEnumerator(cancelable.Token);
+
+                    while (!cancelable.IsCancellationRequested)
                     {
+                        try
+                        {
+                            if (!await enumerator.MoveNextAsync(cancelable.Token))
+                                break;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            yield break;
+                        }
+
+                        var evnt = enumerator.Current;
+                        
                         startPosition = (evnt.Link?.EventNumber ?? evnt.OriginalEventNumber) + 1;
 
                         foundEvents = true;
@@ -46,7 +77,14 @@ public static class EventStoreSource
 
                 if (refreshInterval == null && !foundEvents && noEventGracePeriod != null)
                 {
-                    await Task.Delay(noEventGracePeriod.Value);
+                    try
+                    {
+                        await Task.Delay(noEventGracePeriod.Value, cancelable.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        yield break;
+                    }
 
                     noEventGracePeriod = null;
                     
@@ -56,7 +94,14 @@ public static class EventStoreSource
                 if (refreshInterval == null)
                     yield break;
                 
-                await Task.Delay(refreshInterval.Value);
+                try
+                {
+                    await Task.Delay(refreshInterval.Value, cancelable.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    yield break;
+                }
             }
         }
     }

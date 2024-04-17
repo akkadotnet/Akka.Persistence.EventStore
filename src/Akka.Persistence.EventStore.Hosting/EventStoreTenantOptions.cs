@@ -6,14 +6,12 @@ namespace Akka.Persistence.EventStore.Hosting;
 
 public class EventStoreTenantOptions(string? tenantStreamNamePattern)
 {
-    public string? TenantStreamNamePattern => tenantStreamNamePattern;
-
-    public StringBuilder Build(StringBuilder sb)
+    private StringBuilder Build(StringBuilder sb)
     {
         sb.AppendLine($"{EventStorePersistence.TenantConfigPath} {{");
         
-        if (!string.IsNullOrEmpty(TenantStreamNamePattern))
-            sb.AppendLine($"tenant-stream-name-pattern = {TenantStreamNamePattern.ToHocon()}");
+        if (!string.IsNullOrEmpty(tenantStreamNamePattern))
+            sb.AppendLine($"tenant-stream-name-pattern = {tenantStreamNamePattern.ToHocon()}");
 
         sb.AppendLine("}");
 

@@ -13,9 +13,11 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.Streams.Implementation.Stages;
 using EventStore.Client;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore.Journal;
 
+[PublicAPI]
 public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 {
     private const string LastSequenceNumberMetaDataKey = "lastSeq";
@@ -28,6 +30,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     private IMessageAdapter _adapter = null!;
     private ActorMaterializer _mat = null!;
     
+    // ReSharper disable once ConvertToPrimaryConstructor
     public EventStoreJournal(Config journalConfig)
     {
         _log = Context.GetLogger();
@@ -106,7 +109,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                     : StreamRevision.FromInt64(lowSequenceId);
                 
                 await Source.From(persistentMessages
-                    .Select(x => x.WithTimestamp(DateTime.UtcNow.Ticks)))
+                    .Select(x => x.Timestamp > 0 ? x : x.WithTimestamp(DateTime.UtcNow.Ticks)))
                     .SerializeWith(_adapter)
                     .Grouped(persistentMessages.Count)
                     .Select(x => new EventStoreWrite(

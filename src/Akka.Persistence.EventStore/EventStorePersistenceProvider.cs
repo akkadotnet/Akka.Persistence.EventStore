@@ -1,10 +1,12 @@
 ﻿using Akka.Actor;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore;
 
 /// <summary>
 /// Extension Id provider for the EventStore Persistence extension.
 /// </summary>
+[PublicAPI]
 public class EventStorePersistenceProvider : ExtensionIdProvider<EventStorePersistence>
 {
     /// <summary>

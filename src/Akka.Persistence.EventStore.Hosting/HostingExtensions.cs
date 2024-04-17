@@ -1,8 +1,10 @@
 ﻿using Akka.Hosting;
 using Akka.Persistence.Hosting;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore.Hosting;
 
+[PublicAPI]
 public static class HostingExtensions
 {
     public static AkkaConfigurationBuilder WithEventStorePersistence(
@@ -20,7 +22,10 @@ public static class HostingExtensions
         string? taggedJournalStreamPattern = null,
         string? persistenceIdsStreamName = null,
         string? persistedEventsStreamName = null,
-        string? tenantStreamNamePattern = null)
+        string? tenantStreamNamePattern = null,
+        string? materializerDispatcher = null,
+        TimeSpan? queryRefreshInterval = null,
+        TimeSpan? queryProjectionCatchupTimeout = null)
     {
         if (mode == PersistenceMode.SnapshotStore && journalBuilder is not null)
             throw new Exception($"{nameof(journalBuilder)} can only be set when {nameof(mode)} is set to either {PersistenceMode.Both} or {PersistenceMode.Journal}");
@@ -37,7 +42,10 @@ public static class HostingExtensions
             TaggedStreamNamePattern = taggedJournalStreamPattern,
             PersistedEventsStreamName = persistedEventsStreamName,
             PersistenceIdsStreamName = persistenceIdsStreamName,
-            Tenant = tenant
+            Tenant = tenant,
+            MaterializerDispatcher = materializerDispatcher,
+            QueryRefreshInterval = queryRefreshInterval,
+            QueryProjectionCatchupTimeout = queryProjectionCatchupTimeout
         };
         
         var adapters = new AkkaPersistenceJournalBuilder(journalOptions.Identifier, builder);
@@ -52,7 +60,8 @@ public static class HostingExtensions
             AutoInitialize = autoInitialize,
             Adapter = adapter,
             Prefix = snapshotStreamPrefix,
-            Tenant = tenant
+            Tenant = tenant,
+            MaterializerDispatcher = materializerDispatcher
         };
 
         var tenantOptions = !string.IsNullOrEmpty(tenantStreamNamePattern)

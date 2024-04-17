@@ -76,7 +76,8 @@ public class EventStoreReadJournal
                 _settings.QueryRefreshInterval)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
-            .Select(r => r.Data.PersistenceId);
+            .Select(r => r.Data.PersistenceId)
+            .MapMaterializedValue(_ => NotUsed.Instance);
     }
 
     public Source<string, NotUsed> CurrentPersistenceIds()
@@ -87,10 +88,11 @@ public class EventStoreReadJournal
             .FromStream(
                 _eventStoreClient,
                 filter,
-                noEventGracePeriod: TimeSpan.FromMilliseconds(300))
+                noEventGracePeriod: _settings.ProjectionCatchupTimeout)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
-            .Select(r => r.Data.PersistenceId);
+            .Select(r => r.Data.PersistenceId)
+            .MapMaterializedValue(_ => NotUsed.Instance);
     }
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
@@ -130,7 +132,7 @@ public class EventStoreReadJournal
             filter,
             refreshInterval,
             resolveLinkTos,
-            TimeSpan.FromMilliseconds(500))
+            _settings.ProjectionCatchupTimeout)
         .DeSerializeEventWith(_adapter)
         .Filter(filter)
         .SelectMany(r =>
@@ -144,7 +146,8 @@ public class EventStoreReadJournal
                     sequenceNr: r.representation.SequenceNr,
                     @event: r.representation.Payload,
                     timestamp: r.representation.Timestamp,
-                    Array.Empty<string>()));
+                    []))
+        .MapMaterializedValue(_ => NotUsed.Instance);
 
     private ImmutableList<IPersistentRepresentation> AdaptEvents(
         IPersistentRepresentation persistentRepresentation)

@@ -1,4 +1,5 @@
-﻿using Docker.DotNet;
+﻿using System.Diagnostics;
+using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Configuration;
 using System.Runtime.InteropServices;
@@ -93,8 +94,7 @@ public class DatabaseFixture : IAsyncLifetime
                     {
                         "EVENTSTORE_RUN_PROJECTIONS=All",
                         "EVENTSTORE_MEM_DB=True",
-                        "EVENTSTORE_INSECURE=True",
-                        "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=True"
+                        "EVENTSTORE_INSECURE=True"
                     },
                     HostConfig = new HostConfig
                     {
@@ -120,8 +120,32 @@ public class DatabaseFixture : IAsyncLifetime
                 new ContainerStartParameters());
 
             ConnectionString = $"esdb://admin:changeit@localhost:{_httpPort}?tls=false&tlsVerifyCert=false";
-            
-            await Task.Delay(5000);
+
+            await WaitForEventStoreToStart(TimeSpan.FromSeconds(5), _client);
+
+            async Task WaitForEventStoreToStart(TimeSpan timeout, IDockerClient dockerClient)
+            {
+                var logStream = await dockerClient.Containers.GetContainerLogsAsync(_eventStoreContainerName, new ContainerLogsParameters
+                {
+                    Follow = true,
+                    ShowStdout = true,
+                    ShowStderr = true
+                });
+
+                using (var reader = new StreamReader(logStream))
+                {
+                    var stopwatch = Stopwatch.StartNew();
+                    
+                    while (stopwatch.Elapsed < timeout && await reader.ReadLineAsync() is { } line)
+                    {
+                        if (line.Contains("IS LEADER... SPARTA!")) break;
+                    }
+
+                    stopwatch.Stop();
+                }
+
+                await logStream.DisposeAsync();
+            }
         }
         else
         {

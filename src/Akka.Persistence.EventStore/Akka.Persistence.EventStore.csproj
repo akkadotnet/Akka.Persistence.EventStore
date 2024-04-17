@@ -26,6 +26,7 @@
         <PackageReference Include="EventStore.Client.Grpc.PersistentSubscriptions"/>
         <PackageReference Include="EventStore.Client.Grpc.ProjectionManagement"/>
         <PackageReference Include="EventStore.Client.Grpc.Streams"/>
+        <PackageReference Include="JetBrains.Annotations" />
     </ItemGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">

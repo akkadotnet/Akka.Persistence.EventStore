@@ -2,9 +2,11 @@
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Journal;
 using Akka.Persistence.EventStore.Snapshot;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore;
 
+[PublicAPI]
 public class EventStorePersistence : IExtension
 {
     public const string JournalConfigPath = "akka.persistence.journal.eventstore";

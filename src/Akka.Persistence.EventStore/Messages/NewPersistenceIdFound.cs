@@ -1,3 +1,5 @@
+using JetBrains.Annotations;
+
 namespace Akka.Persistence.EventStore.Messages;
 
-public record NewPersistenceIdFound(string PersistenceId);
+public record NewPersistenceIdFound([PublicAPI]string PersistenceId);
