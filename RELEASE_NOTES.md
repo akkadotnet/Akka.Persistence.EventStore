@@ -1,3 +1,6 @@
+#### 1.5.19 April 17 2024 ####
+This is a patch release with some minor refactoring and updates to dependencies.
+
 #### 1.5.18 April 8 2024 ####
 Upgrade to Akka 1.5.18 dependency
 Upgrade to EventStore 23.2.1 dependency
