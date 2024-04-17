@@ -31,11 +31,12 @@ public static class EventStoreSource
         {
             return Source.From(StartIterator);
         }
-
+        
         async IAsyncEnumerable<ResolvedEvent> StartIterator()
         {
             var startPosition = from.From;
-            
+            var numberOfEmptyIterations = 0;
+
             while (!cancelable.IsCancellationRequested)
             {
                 var readResult = client.ReadStreamAsync(
@@ -48,7 +49,7 @@ public static class EventStoreSource
                 var readState = await readResult.ReadState;
 
                 var foundEvents = false;
-                
+
                 if (readState == ReadState.Ok)
                 {
                     await using var enumerator = readResult.GetAsyncEnumerator(cancelable.Token);
@@ -66,7 +67,7 @@ public static class EventStoreSource
                         }
 
                         var evnt = enumerator.Current;
-                        
+
                         startPosition = (evnt.Link?.EventNumber ?? evnt.OriginalEventNumber) + 1;
 
                         foundEvents = true;
@@ -75,28 +76,19 @@ public static class EventStoreSource
                     }
                 }
 
-                if (refreshInterval == null && !foundEvents && noEventGracePeriod != null)
-                {
-                    try
-                    {
-                        await Task.Delay(noEventGracePeriod.Value, cancelable.Token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        yield break;
-                    }
+                if (foundEvents)
+                    numberOfEmptyIterations = 0;
+                else if (numberOfEmptyIterations < 100)
+                    numberOfEmptyIterations++;
 
-                    noEventGracePeriod = null;
-                    
-                    continue;
-                }
+                var refreshIn = GetRefreshTime(foundEvents, numberOfEmptyIterations);
 
-                if (refreshInterval == null)
+                if (refreshIn == null)
                     yield break;
-                
+
                 try
                 {
-                    await Task.Delay(refreshInterval.Value, cancelable.Token);
+                    await Task.Delay(refreshIn.Value, cancelable.Token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -104,8 +96,16 @@ public static class EventStoreSource
                 }
             }
         }
+
+        TimeSpan? GetRefreshTime(bool foundEvents, int numberOfEmptyIterations)
+        {
+            if (noEventGracePeriod != null && !foundEvents && numberOfEmptyIterations <= 2)
+                return noEventGracePeriod;
+
+            return refreshInterval;
+        }
     }
-    
+
     public static Source<PersistentSubscriptionEvent, ICancelable> ForPersistentSubscription(
         EventStorePersistentSubscriptionsClient subscriptionsClient,
         string streamName,
@@ -129,17 +129,17 @@ public static class EventStoreSource
         {
             return Source.From(StartIterator);
         }
-        
+
         async IAsyncEnumerable<PersistentSubscriptionEvent> StartIterator()
         {
             var subscription = subscriptionsClient.SubscribeToStream(
                 streamName,
                 groupName,
                 maxBufferSize,
-                cancellationToken:cancelable.Token);
+                cancellationToken: cancelable.Token);
 
             await using var enumerator = subscription.GetAsyncEnumerator(cancelable.Token);
-            
+
             while (!cancelable.IsCancellationRequested)
             {
                 try
@@ -164,7 +164,7 @@ public static class EventStoreSource
             }
         }
     }
-    
+
     private class Cancelable : ICancelable
     {
         private readonly CancellationTokenSource _cancellationTokenSource = new();
