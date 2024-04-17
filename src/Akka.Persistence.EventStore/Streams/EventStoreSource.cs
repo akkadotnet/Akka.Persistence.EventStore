@@ -56,15 +56,15 @@ public static class EventStoreSource
 
                     while (!cancelable.IsCancellationRequested)
                     {
-                        // try
-                        // {
-                            if (!await enumerator.MoveNextAsync(cancelable.Token))
+                        try
+                        {
+                            if (!await enumerator.MoveNextAsync())
                                 break;
-                        // }
-                        // catch (OperationCanceledException)
-                        // {
-                        //     yield break;
-                        // }
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            yield break;
+                        }
 
                         var evnt = enumerator.Current;
 
@@ -86,14 +86,14 @@ public static class EventStoreSource
                 if (refreshIn == null)
                     yield break;
 
-                // try
-                // {
+                try
+                {
                     await Task.Delay(refreshIn.Value, cancelable.Token);
-                // }
-                // catch (OperationCanceledException)
-                // {
-                //     yield break;
-                // }
+                }
+                catch (TaskCanceledException)
+                {
+                    yield break;
+                }
             }
         }
 
@@ -147,7 +147,7 @@ public static class EventStoreSource
                     if (!await enumerator.MoveNextAsync(cancelable.Token))
                         yield break;
                 }
-                catch (OperationCanceledException)
+                catch (TaskCanceledException)
                 {
                     yield break;
                 }
