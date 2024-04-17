@@ -1,11 +1,12 @@
-using Akka.Actor;
 using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.EventStore.Serialization;
 using Akka.Streams.Dsl;
 using EventStore.Client;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore.Streams;
 
+[PublicAPI]
 public static class EventStoreStreamSourceExtensions
 {
     public static Source<EventData, NotUsed> SerializeWith<TSource>(
@@ -40,8 +41,8 @@ public static class EventStoreStreamSourceExtensions
             .SerializeWith(msg => adapter.Adapt(msg.Metadata, msg.Snapshot));
     }
     
-    public static Source<TResult, NotUsed> DeSerializeWith<TResult>(
-        this Source<ResolvedEvent, NotUsed> source,
+    public static Source<TResult, TMat> DeSerializeWith<TResult, TMat>(
+        this Source<ResolvedEvent, TMat> source,
         Func<ResolvedEvent, Task<TResult?>> deserializer)
     {
         return source
@@ -50,16 +51,16 @@ public static class EventStoreStreamSourceExtensions
             .Select(x => x!);
     }
     
-    public static Source<TResult, NotUsed> DeSerializeWith<TResult>(
-        this Source<ResolvedEvent, NotUsed> source,
+    public static Source<TResult, TMat> DeSerializeWith<TResult, TMat>(
+        this Source<ResolvedEvent, TMat> source,
         Func<ResolvedEvent, TResult?> deserializer)
     {
         return source
             .DeSerializeWith(msg => Task.FromResult(deserializer(msg)));
     }
 
-    public static Source<ReplayCompletion<IPersistentRepresentation>, NotUsed> DeSerializeEventWith(
-        this Source<ResolvedEvent, NotUsed> source,
+    public static Source<ReplayCompletion<IPersistentRepresentation>, TMat> DeSerializeEventWith<TMat>(
+        this Source<ResolvedEvent, TMat> source,
         IMessageAdapter adapter)
     {
         return source
@@ -74,8 +75,8 @@ public static class EventStoreStreamSourceExtensions
             });
     }
     
-    public static Source<ReplayCompletion<SelectedSnapshot>, NotUsed> DeSerializeSnapshotWith(
-        this Source<ResolvedEvent, NotUsed> source,
+    public static Source<ReplayCompletion<SelectedSnapshot>, TMat> DeSerializeSnapshotWith<TMat>(
+        this Source<ResolvedEvent, TMat> source,
         IMessageAdapter adapter)
     {
         return source
@@ -90,8 +91,8 @@ public static class EventStoreStreamSourceExtensions
             });
     }
     
-    public static Source<DeserializedEvent<TResult>, ICancelable> DeserializeWith<TResult>(
-        this Source<PersistentSubscriptionEvent, ICancelable> source,
+    public static Source<DeserializedEvent<TResult>, TMat> DeserializeWith<TResult, TMat>(
+        this Source<PersistentSubscriptionEvent, TMat> source,
         Func<ResolvedEvent, Task<TResult>> deserializer)
     {
         return source
@@ -103,23 +104,23 @@ public static class EventStoreStreamSourceExtensions
             });
     }
     
-    public static Source<DeserializedEvent<IPersistentRepresentation?>, ICancelable> DeserializeWith(
-        this Source<PersistentSubscriptionEvent, ICancelable> source,
+    public static Source<DeserializedEvent<IPersistentRepresentation?>, TMat> DeserializeWith<TMat>(
+        this Source<PersistentSubscriptionEvent, TMat> source,
         IMessageAdapter adapter)
     {
         return source
             .DeserializeWith(adapter.AdaptEvent);
     }
 
-    public static Source<TSource, NotUsed> Filter<TSource>(
-        this Source<TSource, NotUsed> source,
+    public static Source<TSource, TMat> Filter<TSource, TMat>(
+        this Source<TSource, TMat> source,
         IEventStoreStreamFilter<TSource> filter)
     {
         return source.Via(new FilterStreamStage<TSource>(filter));
     }
     
-    public static Source<ReplayCompletion<TSource>, NotUsed> Filter<TSource>(
-        this Source<ReplayCompletion<TSource>, NotUsed> source,
+    public static Source<ReplayCompletion<TSource>, TMat> Filter<TSource, TMat>(
+        this Source<ReplayCompletion<TSource>, TMat> source,
         IEventStoreStreamFilter<TSource> filter)
     {
         return source.Filter(new ReplayCompletionFilter<TSource>(filter));

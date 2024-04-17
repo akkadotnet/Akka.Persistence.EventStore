@@ -10,9 +10,11 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.Streams.Implementation.Stages;
 using EventStore.Client;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore.Snapshot;
 
+[PublicAPI]
 public class EventStoreSnapshotStore : SnapshotStore
 {
     private readonly EventStoreClient _eventStoreClient;

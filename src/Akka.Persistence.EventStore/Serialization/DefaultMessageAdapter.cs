@@ -3,6 +3,7 @@ using Akka.Actor;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.Journal;
 using EventStore.Client;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore.Serialization;
 
@@ -53,7 +54,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         if (payloadType == null)
             return null;
         
-        var payload = await DeSerialize(evnt.Event.Data.ToArray(), payloadType);
+        var payload = await DeSerialize(evnt.Event.Data, payloadType);
         
         if (payload == null)
             return null;
@@ -84,7 +85,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         if (payloadType == null)
             return null;
 
-        var payload = await DeSerialize(evnt.Event.Data.ToArray(), payloadType);
+        var payload = await DeSerialize(evnt.Event.Data, payloadType);
 
         if (payload == null)
             return null;
@@ -99,6 +100,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return type.ToClrTypeName();
     }
 
+    [PublicAPI]
     protected virtual Task<ReadOnlyMemory<byte>> Serialize(object data)
     {
         var serializer = serialization.FindSerializerForType(data.GetType(), settings.DefaultSerializer);
@@ -106,6 +108,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return Task.FromResult(new ReadOnlyMemory<byte>(serializer.ToBinary(data)));
     }
 
+    [PublicAPI]
     protected virtual Task<object?> DeSerialize(ReadOnlyMemory<byte> data, Type type)
     {
         var serializer = serialization.FindSerializerForType(type, settings.DefaultSerializer);
@@ -113,16 +116,19 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return Task.FromResult<object?>(serializer.FromBinary(data.ToArray(), type));
     }
     
+    [PublicAPI]
     protected virtual string GetEventType(object data)
     {
         return data.GetType().Name.ToEventCase();
     }
 
+    [PublicAPI]
     protected virtual Type? GetTypeFromManifest(string manifest)
     {
         return Type.GetType(manifest, false);
     }
     
+    [PublicAPI]
     protected virtual IStoredEventMetadata GetEventMetadata(
         IPersistentRepresentation message,
         IImmutableSet<string> tags)
@@ -130,6 +136,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return new StoredEventMetadata(message, tags, settings.Tenant);
     }
 
+    [PublicAPI]
     protected virtual async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
     {
         var metadata = await DeSerialize(evnt.Event.Metadata, typeof(StoredEventMetadata));
@@ -137,6 +144,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return metadata as IStoredEventMetadata;
     }
 
+    [PublicAPI]
     protected virtual IStoredSnapshotMetadata GetSnapshotMetadata(
         SnapshotMetadata snapshotMetadata,
         string manifest)
@@ -144,6 +152,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return new StoredSnapshotMetadata(snapshotMetadata, manifest, settings.Tenant);
     }
 
+    [PublicAPI]
     protected virtual async Task<IStoredSnapshotMetadata?> GetSnapshotMetadataFrom(ResolvedEvent evnt)
     {
         var metadata = await DeSerialize(evnt.Event.Metadata, typeof(StoredSnapshotMetadata));
@@ -151,6 +160,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         return metadata as IStoredSnapshotMetadata;
     }
     
+    [PublicAPI]
     public interface IStoredEventMetadata
     {
         // ReSharper disable once InconsistentNaming
@@ -171,6 +181,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
     
     public class StoredEventMetadata : IStoredEventMetadata
     {
+        [PublicAPI]
         public StoredEventMetadata()
         {
             
@@ -195,6 +206,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
 
         public string persistenceId { get; set; } = null!;
         // ReSharper disable once InconsistentNaming
+        [PublicAPI]
         public DateTimeOffset occurredOn { get; set; }
         public string manifest { get; set; } = null!;
         public long sequenceNr { get; set; }
@@ -202,12 +214,15 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         public string journalType { get; set; } = null!;
         public long? timestamp { get; set; }
         // ReSharper disable once InconsistentNaming
+        [PublicAPI]
         public string tenant { get; set; } = null!;
         // ReSharper disable once InconsistentNaming
+        [PublicAPI]
         public IImmutableSet<string> tags { get; set; } = ImmutableHashSet<string>.Empty;
         public IActorRef? sender { get; set; }
     }
     
+    [PublicAPI]
     public interface IStoredSnapshotMetadata
     {
         // ReSharper disable once InconsistentNaming
@@ -222,6 +237,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         DateTime occurredOn { get; }
     }
     
+    [PublicAPI]
     public class StoredSnapshotMetadata : IStoredSnapshotMetadata
     {
         public StoredSnapshotMetadata()

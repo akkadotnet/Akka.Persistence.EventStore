@@ -32,6 +32,8 @@ akka.persistence.snapshot-store.eventstore {
         actualConfig.GetString("adapter").Should().Be(defaultConfig.GetString("adapter"));
         actualConfig.GetString("prefix").Should().Be(defaultConfig.GetString("prefix"));
         actualConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
+        actualConfig.GetString("materializer-dispatcher").Should()
+            .Be(defaultConfig.GetString("materializer-dispatcher"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
@@ -43,7 +45,8 @@ akka.persistence.snapshot-store.eventstore {
             ConnectionString = "a",
             Adapter = "custom",
             Prefix = "custom@",
-            Tenant = "tenant"
+            Tenant = "tenant",
+            MaterializerDispatcher = "custom-dispatcher"
         };
 
         var fullConfig = opt.ToConfig();
@@ -57,5 +60,6 @@ akka.persistence.snapshot-store.eventstore {
         config.Adapter.Should().Be("custom");
         config.StreamPrefix.Should().Be("custom@");
         config.Tenant.Should().Be("tenant");
+        config.MaterializerDispatcher.Should().Be("custom-dispatcher");
     }
 }

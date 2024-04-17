@@ -18,6 +18,7 @@ public sealed class EventStoreSnapshotOptions(bool isDefault, string identifier 
     public string? Adapter { get; set; }
     public string? Prefix { get; set; }
     public string? Tenant { get; set; }
+    public string? MaterializerDispatcher { get; set; }
     public override string Identifier { get; set; } = identifier;
     protected override Config InternalDefaultConfig => Default;
     
@@ -33,6 +34,9 @@ public sealed class EventStoreSnapshotOptions(bool isDefault, string identifier 
         
         if (!string.IsNullOrEmpty(Prefix))
             sb.AppendLine($"prefix = {Prefix.ToHocon()}");
+        
+        if (!string.IsNullOrEmpty(MaterializerDispatcher))
+            sb.AppendLine($"materializer-dispatcher = {MaterializerDispatcher.ToHocon()}");
         
         if (!string.IsNullOrEmpty(Tenant))
             sb.AppendLine($"tenant = {Tenant.ToHocon()}");

@@ -16,18 +16,20 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
     private static readonly Config Default = EventStorePersistence.DefaultJournalConfiguration;
     private static readonly Config DefaultQuery = EventStorePersistence.DefaultQueryConfiguration;
 
-    public string? ConnectionString { get; set; }
-    public string? Adapter { get; set; }
-    public string? StreamPrefix { get; set; }
-    public string? TaggedStreamNamePattern { get; set; }
-    public string? PersistenceIdsStreamName { get; set; }
-    public string? PersistedEventsStreamName { get; set; }
-    public TimeSpan? QueryRefreshInterval { get; set; }
-    public string? Tenant { get; set; }
+    public string? ConnectionString { get; init; }
+    public string? Adapter { get; init; }
+    public string? StreamPrefix { get; init; }
+    public string? TaggedStreamNamePattern { get; init; }
+    public string? PersistenceIdsStreamName { get; init; }
+    public string? PersistedEventsStreamName { get; init; }
+    public TimeSpan? QueryRefreshInterval { get; init; }
+    public string? Tenant { get; init; }
+    public string? MaterializerDispatcher { get; init; }
     public override string Identifier { get; set; } = identifier;
     public Config DefaultQueryConfig => DefaultQuery.MoveTo(QueryPluginId);
     protected override Config InternalDefaultConfig => Default;
-    public string QueryPluginId => $"akka.persistence.query.journal.{Identifier}";
+    
+    private string QueryPluginId => $"akka.persistence.query.journal.{Identifier}";
 
     protected override StringBuilder Build(StringBuilder sb)
     {
@@ -50,6 +52,9 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
         
         if (!string.IsNullOrEmpty(PersistedEventsStreamName))
             sb.AppendLine($"persisted-events-stream-name = {PersistedEventsStreamName.ToHocon()}");
+
+        if (!string.IsNullOrEmpty(MaterializerDispatcher))
+            sb.AppendLine($"materializer-dispatcher = {MaterializerDispatcher.ToHocon()}");
         
         if (!string.IsNullOrEmpty(Tenant))
             sb.AppendLine($"tenant = {Tenant.ToHocon()}");

@@ -36,6 +36,8 @@ akka.persistence.journal.eventstore {
         actualConfig.GetString("persistence-ids-stream-name").Should().Be(defaultConfig.GetString("persistence-ids-stream-name"));
         actualConfig.GetString("persisted-events-stream-name").Should().Be(defaultConfig.GetString("persisted-events-stream-name"));
         actualConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
+        actualConfig.GetString("materializer-dispatcher").Should()
+            .Be(defaultConfig.GetString("materializer-dispatcher"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
@@ -52,7 +54,8 @@ akka.persistence.journal.eventstore {
             TaggedStreamNamePattern = "custom-tagged-[[TAG]]",
             PersistedEventsStreamName = "persisted-events-custom",
             PersistenceIdsStreamName = "persistence-ids-custom",
-            Tenant = "tenant"
+            Tenant = "tenant",
+            MaterializerDispatcher = "custom-dispatcher"
         };
 
         var fullConfig = opt.ToConfig();
@@ -71,5 +74,6 @@ akka.persistence.journal.eventstore {
         config.PersistedEventsStreamName.Should().Be("persisted-events-custom");
         config.PersistenceIdsStreamName.Should().Be("persistence-ids-custom");
         config.Tenant.Should().Be("tenant");
+        config.MaterializerDispatcher.Should().Be("custom-dispatcher");
     }
 }
