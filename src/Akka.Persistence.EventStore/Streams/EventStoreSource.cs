@@ -81,7 +81,7 @@ public static class EventStoreSource
                 else if (numberOfEmptyIterations < 100)
                     numberOfEmptyIterations++;
 
-                var refreshIn = GetRefreshTime(foundEvents, numberOfEmptyIterations);
+                var refreshIn = GetRefreshTime(numberOfEmptyIterations);
 
                 if (refreshIn == null)
                     yield break;
@@ -97,9 +97,9 @@ public static class EventStoreSource
             }
         }
 
-        TimeSpan? GetRefreshTime(bool foundEvents, int numberOfEmptyIterations)
+        TimeSpan? GetRefreshTime(int numberOfEmptyIterations)
         {
-            if (noEventGracePeriod != null && !foundEvents && numberOfEmptyIterations <= 2)
+            if (noEventGracePeriod != null && numberOfEmptyIterations == 1)
                 return noEventGracePeriod;
 
             return refreshInterval;
