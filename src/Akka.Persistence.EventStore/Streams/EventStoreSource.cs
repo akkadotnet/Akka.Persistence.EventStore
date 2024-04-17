@@ -52,19 +52,19 @@ public static class EventStoreSource
 
                 if (readState == ReadState.Ok)
                 {
-                    await using var enumerator = readResult.GetAsyncEnumerator();
+                    await using var enumerator = readResult.GetAsyncEnumerator(cancelable.Token);
 
                     while (!cancelable.IsCancellationRequested)
                     {
-                        try
-                        {
+                        // try
+                        // {
                             if (!await enumerator.MoveNextAsync(cancelable.Token))
                                 break;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            yield break;
-                        }
+                        // }
+                        // catch (OperationCanceledException)
+                        // {
+                        //     yield break;
+                        // }
 
                         var evnt = enumerator.Current;
 
@@ -86,14 +86,14 @@ public static class EventStoreSource
                 if (refreshIn == null)
                     yield break;
 
-                try
-                {
+                // try
+                // {
                     await Task.Delay(refreshIn.Value, cancelable.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    yield break;
-                }
+                // }
+                // catch (OperationCanceledException)
+                // {
+                //     yield break;
+                // }
             }
         }
 
@@ -138,7 +138,7 @@ public static class EventStoreSource
                 maxBufferSize,
                 cancellationToken: cancelable.Token);
 
-            await using var enumerator = subscription.GetAsyncEnumerator();
+            await using var enumerator = subscription.GetAsyncEnumerator(cancelable.Token);
 
             while (!cancelable.IsCancellationRequested)
             {
