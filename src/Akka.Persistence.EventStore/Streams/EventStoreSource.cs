@@ -52,7 +52,7 @@ public static class EventStoreSource
 
                 if (readState == ReadState.Ok)
                 {
-                    await using var enumerator = readResult.GetAsyncEnumerator(cancelable.Token);
+                    await using var enumerator = readResult.GetAsyncEnumerator();
 
                     while (!cancelable.IsCancellationRequested)
                     {
@@ -138,7 +138,7 @@ public static class EventStoreSource
                 maxBufferSize,
                 cancellationToken: cancelable.Token);
 
-            await using var enumerator = subscription.GetAsyncEnumerator(cancelable.Token);
+            await using var enumerator = subscription.GetAsyncEnumerator();
 
             while (!cancelable.IsCancellationRequested)
             {
