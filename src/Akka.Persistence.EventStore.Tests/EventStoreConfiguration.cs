@@ -34,6 +34,7 @@ public static class EventStoreConfiguration
                   class = ""Akka.Persistence.EventStore.Query.EventStoreReadJournalProvider, Akka.Persistence.EventStore""
                   write-plugin = ""akka.persistence.journal.eventstore""
                   refresh-interval = 1s
+                  projection-catchup-timeout = 1s
                 }}
                 akka.test.single-expect-default = 10s");
 

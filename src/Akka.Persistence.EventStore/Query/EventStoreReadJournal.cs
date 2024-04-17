@@ -88,7 +88,7 @@ public class EventStoreReadJournal
             .FromStream(
                 _eventStoreClient,
                 filter,
-                noEventGracePeriod: TimeSpan.FromMilliseconds(500))
+                noEventGracePeriod: _settings.ProjectionCatchupTimeout)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
             .Select(r => r.Data.PersistenceId)
@@ -132,7 +132,7 @@ public class EventStoreReadJournal
             filter,
             refreshInterval,
             resolveLinkTos,
-            TimeSpan.FromMilliseconds(500))
+            _settings.ProjectionCatchupTimeout)
         .DeSerializeEventWith(_adapter)
         .Filter(filter)
         .SelectMany(r =>

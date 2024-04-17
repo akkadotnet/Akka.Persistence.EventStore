@@ -14,8 +14,10 @@ public class EventStoreReadJournalSettings
         
         WritePlugin = config.GetString("write-plugin");
         QueryRefreshInterval = config.GetTimeSpan("refresh-interval", TimeSpan.FromSeconds(5));
+        ProjectionCatchupTimeout = config.GetTimeSpan("projection-catchup-timeout", TimeSpan.FromMilliseconds(500));
     }
     
     public string WritePlugin { get; }
     public TimeSpan QueryRefreshInterval { get; }
+    public TimeSpan ProjectionCatchupTimeout { get; }
 }
