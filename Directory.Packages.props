@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AkkaVersion>1.5.19</AkkaVersion>
+    <AkkaVersion>1.5.20</AkkaVersion>
     <EventStoreVersion>23.2.1</EventStoreVersion>
     <XunitVersion>2.7.1</XunitVersion>
     <TestSdkVersion>17.9.0</TestSdkVersion>
