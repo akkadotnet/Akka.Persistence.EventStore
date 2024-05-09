@@ -74,6 +74,8 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
 
         actor.Tell("a green banana");
         ExpectMsg("a green banana-done");
+
+        await Task.Delay(TimeSpan.FromMilliseconds(300));
         
         var round3 = await journal.CurrentEventsByTag(tag, item1Offset)
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
@@ -81,9 +83,9 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         round3.Should().HaveCount(1);
     }
     
-    private EventEnvelope ExpectEnvelope(
+    private void ExpectEnvelope(
         TestSubscriber.Probe<EventEnvelope> probe,
-        string persistenceId, 
+        string persistenceId,
         long sequenceNr,
         string @event,
         string tag)
@@ -98,7 +100,5 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
             envelope.Tags.Should().NotBeNull();
             envelope.Tags.Should().Contain(tag);
         }
-        
-        return envelope;
     }
 }
