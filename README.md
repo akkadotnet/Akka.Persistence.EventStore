@@ -181,13 +181,11 @@ This will run the journal with its default settings. The default settings can be
 #### HOCON Configuration
 
 - `write-plugin` - Absolute path to the write journal plugin configuration entry that this query journal will connect to. If undefined (or "") it will connect to the default journal as specified by the `akka.persistence.journal.plugin` property.
-- `refresh-interval` - The amount of time the plugin will wait between queries when it didn't find any events.
 
 #### HOCON Configuration Example
 ```
 akka.persistence.query.journal.eventstore {
     write-plugin = ""
-    refresh-interval = 5s
 }
 ```
 

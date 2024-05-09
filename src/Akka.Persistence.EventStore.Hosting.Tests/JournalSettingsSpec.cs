@@ -1,7 +1,6 @@
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
 using FluentAssertions;
-using FluentAssertions.Extensions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
@@ -47,7 +46,6 @@ akka.persistence.journal.eventstore {
         {
             AutoInitialize = false,
             ConnectionString = "a",
-            QueryRefreshInterval = 5.Seconds(),
             Serializer = "hyperion",
             Adapter = "custom",
             StreamPrefix = "prefix",
@@ -64,9 +62,7 @@ akka.persistence.journal.eventstore {
             .WithFallback(EventStorePersistence.DefaultJournalConfiguration);
         
         var config = new EventStoreJournalSettings(journalConfig);
-
-        fullConfig.GetTimeSpan("akka.persistence.query.journal.custom.refresh-interval").Should().Be(5.Seconds());
-
+        
         config.ConnectionString.Should().Be("a");
         config.Adapter.Should().Be("custom");
         config.StreamPrefix.Should().Be("prefix");

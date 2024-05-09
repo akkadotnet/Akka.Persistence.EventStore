@@ -51,7 +51,7 @@ public class EventStoreReadJournal
             _writeSettings.GetStreamName(persistenceId, _tenantSettings),
             fromSequenceNr, 
             maxSequenceNumber: toSequenceNr),
-        _settings.QueryRefreshInterval,
+        true,
         false);
 
     public Source<EventEnvelope, NotUsed> CurrentEventsByPersistenceId(
@@ -62,7 +62,7 @@ public class EventStoreReadJournal
             _writeSettings.GetStreamName(persistenceId, _tenantSettings),
             fromSequenceNr,
             maxSequenceNumber: toSequenceNr),
-        null,
+        false,
         false);
 
     public Source<string, NotUsed> PersistenceIds()
@@ -73,11 +73,11 @@ public class EventStoreReadJournal
             .FromStream(
                 _eventStoreClient,
                 filter,
-                _settings.QueryRefreshInterval)
+                true,
+                true)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
-            .Select(r => r.Data.PersistenceId)
-            .MapMaterializedValue(_ => NotUsed.Instance);
+            .Select(r => r.Data.PersistenceId);
     }
 
     public Source<string, NotUsed> CurrentPersistenceIds()
@@ -88,51 +88,50 @@ public class EventStoreReadJournal
             .FromStream(
                 _eventStoreClient,
                 filter,
-                noEventGracePeriod: _settings.ProjectionCatchupTimeout)
+                noStreamGracePeriod: _settings.NoStreamTimeout)
             .DeSerializeEventWith(_adapter)
             .Filter(filter)
-            .Select(r => r.Data.PersistenceId)
-            .MapMaterializedValue(_ => NotUsed.Instance);
+            .Select(r => r.Data.PersistenceId);
     }
 
     public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
         EventStoreEventStreamFilter.FromOffsetExclusive(
             _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
             offset),
-        _settings.QueryRefreshInterval,
+        true,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset) => EventsFromStreamSource(
         EventStoreEventStreamFilter.FromOffsetExclusive(
             _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
             offset),
-        null,
+        false,
         true);
 
     public Source<EventEnvelope, NotUsed> AllEvents(Offset offset) => EventsFromStreamSource(
         EventStoreEventStreamFilter.FromOffsetExclusive(
             _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
             offset),
-        _settings.QueryRefreshInterval,
+        true,
         true);
 
     public Source<EventEnvelope, NotUsed> CurrentAllEvents(Offset offset) => EventsFromStreamSource(
         EventStoreEventStreamFilter.FromOffsetExclusive(
             _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
             offset),
-        null,
+        false,
         true);
 
     private Source<EventEnvelope, NotUsed> EventsFromStreamSource(
         EventStoreEventStreamFilter filter,
-        TimeSpan? refreshInterval,
+        bool continuous,
         bool resolveLinkTos) => EventStoreSource
         .FromStream(
             _eventStoreClient,
             filter,
-            refreshInterval,
             resolveLinkTos,
-            _settings.ProjectionCatchupTimeout)
+            continuous,
+            _settings.NoStreamTimeout)
         .DeSerializeEventWith(_adapter)
         .Filter(filter)
         .SelectMany(r =>
@@ -146,8 +145,7 @@ public class EventStoreReadJournal
                     sequenceNr: r.representation.SequenceNr,
                     @event: r.representation.Payload,
                     timestamp: r.representation.Timestamp,
-                    []))
-        .MapMaterializedValue(_ => NotUsed.Instance);
+                    []));
 
     private ImmutableList<IPersistentRepresentation> AdaptEvents(
         IPersistentRepresentation persistentRepresentation)

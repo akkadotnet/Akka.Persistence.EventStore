@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Akka.Actor;
 using Akka.Persistence.EventStore.Streams;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -30,7 +29,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
     {
         const string streamName = "a";
         
-        var (cancelable, probe) = await Setup(streamName, 2);
+        var probe = await Setup(streamName, 2);
 
         probe.Request(5);
 
@@ -44,7 +43,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
         
-        cancelable.Cancel();
+        probe.Cancel();
     }
     
     [Fact]
@@ -52,7 +51,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
     {
         const string streamName = "b";
         
-        var (cancelable, probe) = await Setup(streamName, 1);
+        var probe = await Setup(streamName, 1);
 
         probe.Request(5);
 
@@ -77,7 +76,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
         
         probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
 
-        cancelable.Cancel();
+        probe.Cancel();
     }
 
     [Fact]
@@ -85,7 +84,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
     {
         const string streamName = "c";
         
-        var (cancelable, probe) = await Setup(streamName, 150);
+        var probe = await Setup(streamName, 150);
 
         probe.Request(150);
 
@@ -100,7 +99,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
         
         probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
         
-        cancelable.Cancel();
+        probe.Cancel();
     }
     
     [Fact]
@@ -108,11 +107,10 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
     {
         const string streamName = "d";
 
-        var (cancelable, probe) = await Setup(
+        var probe = await Setup(
             streamName,
             1,
-            RestartSettings
-                .Create(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), 0.2));
+            keepReconnecting: true);
 
         probe.Request(5);
 
@@ -141,7 +139,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
         
         probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
 
-        cancelable.Cancel();
+        probe.Cancel();
     }
     
     [Fact]
@@ -149,7 +147,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
     {
         const string streamName = "e";
         
-        var (_, probe) = await Setup(streamName, 1);
+        var probe = await Setup(streamName, 1);
 
         probe.Request(5);
 
@@ -169,7 +167,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
     {
         const string streamName = "f";
 
-        var (cancelable, probe) = await Setup(streamName, 1);
+        var probe = await Setup(streamName, 1);
 
         probe.Request(5);
 
@@ -177,27 +175,25 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         await firstMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(300));
         
         var subscriptionBeforeCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 
         subscriptionBeforeCancel.Connections.Should().HaveCount(1);
 
-        cancelable.Cancel();
+        probe.Cancel();
         
-        await probe.ExpectCompleteAsync();
-
-        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        await Task.Delay(TimeSpan.FromMilliseconds(300));
 
         var subscriptionAfterCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 
         subscriptionAfterCancel.Connections.Should().HaveCount(0);
     }
 
-    private async Task<(ICancelable, TestSubscriber.Probe<PersistentSubscriptionEvent>)> Setup(
+    private async Task<TestSubscriber.Probe<PersistentSubscriptionEvent>> Setup(
         string streamName,
         int numberOfEvents,
-        RestartSettings? restartWith = null)
+        bool keepReconnecting = false)
     {
         await _subscriptionClient.CreateToStreamAsync(
             streamName,
@@ -221,8 +217,8 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
                 _subscriptionClient,
                 streamName,
                 streamName,
-                restartWith: restartWith);
+                keepReconnecting: keepReconnecting);
         
-        return stream.ToMaterialized(this.SinkProbe<PersistentSubscriptionEvent>(), Keep.Both).Run(Sys.Materializer());
+        return stream.ToMaterialized(this.SinkProbe<PersistentSubscriptionEvent>(), Keep.Right).Run(Sys.Materializer());
     }
 }
