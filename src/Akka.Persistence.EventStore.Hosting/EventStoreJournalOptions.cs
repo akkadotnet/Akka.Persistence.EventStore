@@ -22,8 +22,7 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
     public string? TaggedStreamNamePattern { get; init; }
     public string? PersistenceIdsStreamName { get; init; }
     public string? PersistedEventsStreamName { get; init; }
-    public TimeSpan? QueryRefreshInterval { get; init; }
-    public TimeSpan? QueryProjectionCatchupTimeout { get; init; }
+    public TimeSpan? QueryNoStreamTimeout { get; init; }
     public string? Tenant { get; init; }
     public string? MaterializerDispatcher { get; init; }
     public override string Identifier { get; set; } = identifier;
@@ -66,11 +65,8 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
 
         sb.AppendLine($"write-plugin = {PluginId.ToHocon()}");
         
-        if (QueryRefreshInterval != null)
-            sb.AppendLine($"refresh-interval = {QueryRefreshInterval.ToHocon()}");
-        
-        if (QueryProjectionCatchupTimeout != null)
-            sb.AppendLine($"projection-catchup-timeout = {QueryProjectionCatchupTimeout.ToHocon()}");
+        if (QueryNoStreamTimeout != null)
+            sb.AppendLine($"no-stream-timeout = {QueryNoStreamTimeout.ToHocon()}");
 
         sb.AppendLine("}");
         

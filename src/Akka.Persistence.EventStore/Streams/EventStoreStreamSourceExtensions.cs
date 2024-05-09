@@ -129,7 +129,7 @@ public static class EventStoreStreamSourceExtensions
     public record DeserializedEvent<TEvent>(
         TEvent Event, 
         Func<Task> Ack,
-        Func<string, Task> Nack);
+        Func<string, PersistentSubscriptionNakEventAction?, Task> Nack);
     
     private class ReplayCompletionFilter<TSource>(IEventStoreStreamFilter<TSource> innerFilter)
         : IEventStoreStreamFilter<ReplayCompletion<TSource>>

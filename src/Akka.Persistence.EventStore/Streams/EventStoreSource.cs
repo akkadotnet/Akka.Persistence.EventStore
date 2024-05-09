@@ -1,4 +1,3 @@
-using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using EventStore.Client;
@@ -7,189 +6,159 @@ namespace Akka.Persistence.EventStore.Streams;
 
 public static class EventStoreSource
 {
-    public static Source<ResolvedEvent, ICancelable> FromStream(
+    public static Source<ResolvedEvent, NotUsed> FromStream(
         EventStoreClient client,
         IEventStoreStreamOrigin from,
-        TimeSpan? refreshInterval = null,
         bool resolveLinkTos = false,
-        TimeSpan? noEventGracePeriod = null,
-        RestartSettings? restartWith = null)
+        bool continuous = false,
+        TimeSpan? noStreamGracePeriod = null)
     {
-        ICancelable cancelable = new Cancelable();
+        return Source.From(StartIterator);
 
-        if (restartWith != null)
+        IAsyncEnumerable<ResolvedEvent> StartIterator()
         {
-            return RestartSource
-                .OnFailuresWithBackoff(Create, restartWith)
-                .MapMaterializedValue(_ => cancelable);
+            return from.Direction == Direction.Forwards && continuous ? StartSubscription() : StartReader();
         }
 
-        return Create()
-            .MapMaterializedValue(_ => cancelable);
-
-        Source<ResolvedEvent, NotUsed> Create()
+        IAsyncEnumerable<ResolvedEvent> StartReader()
         {
-            return Source.From(StartIterator);
+            return new EventStreamEnumerable<ResolvedEvent>(
+                async cancellationToken =>
+                {
+                    var readResult = client.ReadStreamAsync(
+                        from.Direction,
+                        from.StreamName,
+                        from.From,
+                        resolveLinkTos: resolveLinkTos,
+                        cancellationToken: cancellationToken);
+
+                    var readState = await readResult.ReadState;
+
+                    if (readState == ReadState.StreamNotFound && noStreamGracePeriod != null)
+                    {
+                        await Task.Delay(noStreamGracePeriod.Value, cancellationToken);
+
+                        readResult = client.ReadStreamAsync(
+                            from.Direction,
+                            from.StreamName,
+                            from.From,
+                            resolveLinkTos: resolveLinkTos,
+                            cancellationToken: cancellationToken);
+
+                        readState = await readResult.ReadState;
+                    }
+
+                    return readState == ReadState.Ok
+                        ? readResult.GetAsyncEnumerator(cancellationToken)
+                        : new EmptyEnumerator<ResolvedEvent>();
+                });
         }
 
-        async IAsyncEnumerable<ResolvedEvent> StartIterator()
+        IAsyncEnumerable<ResolvedEvent> StartSubscription()
         {
-            var startPosition = from.From;
-            
-            while (!cancelable.IsCancellationRequested)
-            {
-                var readResult = client.ReadStreamAsync(
-                    from.Direction,
-                    from.StreamName,
-                    startPosition,
-                    resolveLinkTos: resolveLinkTos,
-                    cancellationToken: cancelable.Token);
-
-                var readState = await readResult.ReadState;
-
-                var foundEvents = false;
-                
-                if (readState == ReadState.Ok)
-                {
-                    await using var enumerator = readResult.GetAsyncEnumerator(cancelable.Token);
-
-                    while (!cancelable.IsCancellationRequested)
-                    {
-                        try
-                        {
-                            if (!await enumerator.MoveNextAsync(cancelable.Token))
-                                break;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            yield break;
-                        }
-
-                        var evnt = enumerator.Current;
-                        
-                        startPosition = (evnt.Link?.EventNumber ?? evnt.OriginalEventNumber) + 1;
-
-                        foundEvents = true;
-
-                        yield return evnt;
-                    }
-                }
-
-                if (refreshInterval == null && !foundEvents && noEventGracePeriod != null)
-                {
-                    try
-                    {
-                        await Task.Delay(noEventGracePeriod.Value, cancelable.Token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        yield break;
-                    }
-
-                    noEventGracePeriod = null;
-                    
-                    continue;
-                }
-
-                if (refreshInterval == null)
-                    yield break;
-                
-                try
-                {
-                    await Task.Delay(refreshInterval.Value, cancelable.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    yield break;
-                }
-            }
+            return client.SubscribeToStream(
+                from.StreamName,
+                from.From == StreamPosition.Start
+                    ? global::EventStore.Client.FromStream.Start
+                    : global::EventStore.Client.FromStream.After(from.From - 1),
+                resolveLinkTos);
         }
     }
-    
-    public static Source<PersistentSubscriptionEvent, ICancelable> ForPersistentSubscription(
+
+    public static Source<PersistentSubscriptionEvent, NotUsed> ForPersistentSubscription(
         EventStorePersistentSubscriptionsClient subscriptionsClient,
         string streamName,
         string groupName,
         int maxBufferSize = 500,
-        RestartSettings? restartWith = null)
+        bool keepReconnecting = false)
     {
-        ICancelable cancelable = new Cancelable();
-
-        if (restartWith != null)
+        if (keepReconnecting)
         {
             return RestartSource
-                .OnFailuresWithBackoff(Create, restartWith)
-                .MapMaterializedValue(_ => cancelable);
+                .OnFailuresWithBackoff(
+                    () => Source.From(StartIterator),
+                    RestartSettings.Create(TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(5), 1.2));
         }
 
-        return Create()
-            .MapMaterializedValue(_ => cancelable);
-
-        Source<PersistentSubscriptionEvent, NotUsed> Create()
-        {
-            return Source.From(StartIterator);
-        }
+        return Source.From(StartIterator);
         
-        async IAsyncEnumerable<PersistentSubscriptionEvent> StartIterator()
+        IAsyncEnumerable<PersistentSubscriptionEvent> StartIterator()
         {
-            var subscription = subscriptionsClient.SubscribeToStream(
-                streamName,
-                groupName,
-                maxBufferSize,
-                cancellationToken:cancelable.Token);
-
-            await using var enumerator = subscription.GetAsyncEnumerator(cancelable.Token);
-            
-            while (!cancelable.IsCancellationRequested)
+            return new EventStreamEnumerable<PersistentSubscriptionEvent, ResolvedEvent>(ct =>
             {
-                try
-                {
-                    if (!await enumerator.MoveNextAsync(cancelable.Token))
-                        yield break;
-                }
-                catch (OperationCanceledException)
-                {
-                    yield break;
-                }
+                var subscription = subscriptionsClient.SubscribeToStream(
+                    streamName,
+                    groupName,
+                    maxBufferSize,
+                    cancellationToken: ct);
 
-                var message = enumerator.Current;
+                ct.Register(() => subscription.Dispose());
+                
+                return Task
+                    .FromResult<(IAsyncEnumerator<ResolvedEvent> source,
+                        Func<ResolvedEvent, PersistentSubscriptionEvent> transform)>((
+                        subscription.GetAsyncEnumerator(ct),
+                        evnt => new PersistentSubscriptionEvent(
+                            evnt,
+                            () => subscription.Ack(evnt),
+                            (reason, action) => subscription.Nack(
+                                action ?? PersistentSubscriptionNakEventAction.Unknown,
+                                reason,
+                                evnt))));
+            });
+        }
+    }
 
-                yield return new PersistentSubscriptionEvent(
-                    message,
-                    () => subscription.Ack(message),
-                    reason => subscription.Nack(
-                        PersistentSubscriptionNakEventAction.Unknown,
-                        reason,
-                        message));
+    private class EventStreamEnumerable<T>(Func<CancellationToken, Task<IAsyncEnumerator<T>>> startSource)
+        : EventStreamEnumerable<T, T>(async ct => (await startSource(ct), x => x));
+
+    private class EventStreamEnumerable<TResult, TSource>(
+        Func<CancellationToken, Task<(IAsyncEnumerator<TSource> source, Func<TSource, TResult> transform)>> startSource)
+        : IAsyncEnumerable<TResult>
+    {
+        public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken cancellationToken)
+        {
+            return new Enumerator(startSource, cancellationToken);
+        }
+
+        private class Enumerator(
+            Func<CancellationToken, Task<(IAsyncEnumerator<TSource> source, Func<TSource, TResult> transform)>>
+                startSource,
+            CancellationToken cancellationToken)
+            : IAsyncEnumerator<TResult>
+        {
+            private (IAsyncEnumerator<TSource> source, Func<TSource, TResult> transform)? _source;
+
+            public TResult Current =>
+                _source != null ? _source.Value.transform(_source.Value.source.Current) : default!;
+
+            public async ValueTask DisposeAsync()
+            {
+                if (_source != null)
+                    await _source.Value.source.DisposeAsync();
+            }
+
+            public async ValueTask<bool> MoveNextAsync()
+            {
+                _source ??= await startSource(cancellationToken);
+
+                return await _source.Value.source.MoveNextAsync(cancellationToken);
             }
         }
     }
-    
-    private class Cancelable : ICancelable
+
+    private class EmptyEnumerator<T> : IAsyncEnumerator<T>
     {
-        private readonly CancellationTokenSource _cancellationTokenSource = new();
-
-        public bool IsCancellationRequested => _cancellationTokenSource.IsCancellationRequested;
-        public CancellationToken Token => _cancellationTokenSource.Token;
-
-        public void Cancel()
+        public ValueTask DisposeAsync()
         {
-            _cancellationTokenSource.Cancel();
+            return ValueTask.CompletedTask;
         }
 
-        public void CancelAfter(TimeSpan delay)
+        public ValueTask<bool> MoveNextAsync()
         {
-            _cancellationTokenSource.CancelAfter(delay);
+            return ValueTask.FromResult(false);
         }
 
-        public void CancelAfter(int millisecondsDelay)
-        {
-            _cancellationTokenSource.CancelAfter(millisecondsDelay);
-        }
-
-        public void Cancel(bool throwOnFirstException)
-        {
-            _cancellationTokenSource.Cancel(throwOnFirstException);
-        }
+        public T Current => default!;
     }
 }

@@ -1,4 +1,4 @@
-#### 1.5.19 April 17 2024 ####
+#### 1.5.20 May 9 2024 ####
 This is a patch release with some minor refactoring and updates to dependencies.
 
 #### 1.5.18 April 8 2024 ####
