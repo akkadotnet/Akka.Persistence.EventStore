@@ -4,9 +4,11 @@ using Akka.Persistence.Query;
 using Akka.Persistence.TCK.Query;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Akka.Streams.TestKit;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Akka.Persistence.EventStore.Tests.Query;
 
@@ -19,6 +21,34 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
 
+    [Fact]
+    public override void ReadJournal_query_CurrentEventsByTag_should_see_all_150_events()
+    {
+        if (ReadJournal is not ICurrentEventsByTagQuery queries)
+            throw IsTypeException.ForMismatchedType(nameof(ICurrentEventsByTagQuery), ReadJournal?.GetType().Name ?? "null");
+
+        var a = Sys.ActorOf(Query.TestActor.Props("a"));
+
+        foreach (var _ in Enumerable.Range(1, 150))
+        {
+            a.Tell("a green apple");
+            ExpectMsg("a green apple-done");
+        }
+        
+        Thread.Sleep(TimeSpan.FromMilliseconds(300));
+
+        var greenSrc = queries.CurrentEventsByTag("green", offset: Offset.NoOffset());
+        var probe = greenSrc.RunWith(this.SinkProbe<EventEnvelope>(), Materializer);
+        probe.Request(150);
+        foreach (var i in Enumerable.Range(1, 150))
+        {
+            ExpectEnvelope(probe, "a", i, "a green apple", "green");
+        }
+
+        probe.ExpectComplete();
+        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+    }
+    
     [Fact]
     public async Task ReadJournal_query_offset_exclusivity_should_be_correct()
     {
@@ -49,5 +79,26 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
         
         round3.Should().HaveCount(1);
+    }
+    
+    private EventEnvelope ExpectEnvelope(
+        TestSubscriber.Probe<EventEnvelope> probe,
+        string persistenceId, 
+        long sequenceNr,
+        string @event,
+        string tag)
+    {
+        var envelope = probe.ExpectNext<EventEnvelope>(_ => true);
+        envelope.PersistenceId.Should().Be(persistenceId);
+        envelope.SequenceNr.Should().Be(sequenceNr);
+        envelope.Event.Should().Be(@event);
+        
+        if (SupportsTagsInEventEnvelope)
+        {
+            envelope.Tags.Should().NotBeNull();
+            envelope.Tags.Should().Contain(tag);
+        }
+        
+        return envelope;
     }
 }
