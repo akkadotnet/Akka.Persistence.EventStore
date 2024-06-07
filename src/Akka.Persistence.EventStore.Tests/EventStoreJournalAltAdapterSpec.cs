@@ -11,9 +11,9 @@ public class EventStoreJournalAltAdapterSpec : JournalSpec
     // TODO: hack. Replace when https://github.com/akkadotnet/akka.net/issues/3811
     protected override bool SupportsSerialization => false;
 
-    public EventStoreJournalAltAdapterSpec(DatabaseFixture databaseFixture)
+    public EventStoreJournalAltAdapterSpec(EventStoreContainer eventStoreContainer)
         : base(EventStoreConfiguration.Build(
-            databaseFixture,
+            eventStoreContainer,
             "alt-journal-spec",
             typeof(TestMessageAdapter)), nameof(EventStoreJournalSpec))
     {

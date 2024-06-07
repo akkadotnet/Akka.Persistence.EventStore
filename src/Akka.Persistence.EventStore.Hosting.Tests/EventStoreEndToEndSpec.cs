@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 namespace Akka.Persistence.EventStore.Hosting.Tests;
 
 [Collection("EventStoreDatabaseSpec")]
-public class EventStoreEndToEndSpec(ITestOutputHelper output, DatabaseFixture fixture)
+public class EventStoreEndToEndSpec(ITestOutputHelper output, EventStoreContainer fixture)
     : Akka.Hosting.TestKit.TestKit(nameof(EventStoreEndToEndSpec), output)
 {
     private const string GetAll = "getAll";

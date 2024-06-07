@@ -9,8 +9,8 @@ namespace Akka.Persistence.EventStore.Tests.Query;
 [Collection("EventStoreDatabaseSpec")]
 public class EventStoreCurrentPersistenceIdsSpec : CurrentPersistenceIdsSpec
 {
-    public EventStoreCurrentPersistenceIdsSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
-        base(EventStoreConfiguration.Build(databaseFixture, Guid.NewGuid().ToString()), nameof(EventStoreCurrentPersistenceIdsSpec), output)
+    public EventStoreCurrentPersistenceIdsSpec(EventStoreContainer eventStoreContainer, ITestOutputHelper output) :
+        base(EventStoreConfiguration.Build(eventStoreContainer, Guid.NewGuid().ToString()), nameof(EventStoreCurrentPersistenceIdsSpec), output)
     {
         ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }

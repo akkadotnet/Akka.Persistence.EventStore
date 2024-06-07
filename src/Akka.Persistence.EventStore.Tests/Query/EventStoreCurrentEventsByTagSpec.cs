@@ -15,8 +15,8 @@ namespace Akka.Persistence.EventStore.Tests.Query;
 [Collection("EventStoreDatabaseSpec")]
 public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
 {
-    public EventStoreCurrentEventsByTagSpec(DatabaseFixture databaseFixture, ITestOutputHelper output) :
-        base(EventStoreConfiguration.Build(databaseFixture, Guid.NewGuid().ToString()), nameof(EventStoreCurrentEventsByTagSpec), output)
+    public EventStoreCurrentEventsByTagSpec(EventStoreContainer eventStoreContainer, ITestOutputHelper output) :
+        base(EventStoreConfiguration.Build(eventStoreContainer, Guid.NewGuid().ToString()), nameof(EventStoreCurrentEventsByTagSpec), output)
     {
         ReadJournal = Sys.ReadJournalFor<EventStoreReadJournal>(EventStorePersistence.QueryConfigPath);
     }
