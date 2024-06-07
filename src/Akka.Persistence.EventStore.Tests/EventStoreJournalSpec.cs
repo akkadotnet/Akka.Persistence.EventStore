@@ -11,8 +11,8 @@ public class EventStoreJournalSpec : JournalSpec
     // TODO: hack. Replace when https://github.com/akkadotnet/akka.net/issues/3811
     protected override bool SupportsSerialization => false;
 
-    public EventStoreJournalSpec(DatabaseFixture databaseFixture)
-        : base(EventStoreConfiguration.Build(databaseFixture, "es-journal-spec"), nameof(EventStoreJournalSpec))
+    public EventStoreJournalSpec(EventStoreContainer eventStoreContainer)
+        : base(EventStoreConfiguration.Build(eventStoreContainer, "es-journal-spec"), nameof(EventStoreJournalSpec))
     {
         Initialize();
     }

@@ -15,10 +15,10 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
     private readonly EventStorePersistentSubscriptionsClient _subscriptionClient;
     private readonly EventStoreClient _eventStoreClient;
     
-    public PersistentSubscriptionSpec(DatabaseFixture databaseFixture) 
-        : base(EventStoreConfiguration.Build(databaseFixture, "persistent-subscription-spec"))
+    public PersistentSubscriptionSpec(EventStoreContainer eventStoreContainer) 
+        : base(EventStoreConfiguration.Build(eventStoreContainer, "persistent-subscription-spec"))
     {
-        var clientSettings = EventStoreClientSettings.Create(databaseFixture.ConnectionString ?? "");
+        var clientSettings = EventStoreClientSettings.Create(eventStoreContainer.ConnectionString ?? "");
         
         _subscriptionClient = new EventStorePersistentSubscriptionsClient(clientSettings);
         _eventStoreClient = new EventStoreClient(clientSettings);

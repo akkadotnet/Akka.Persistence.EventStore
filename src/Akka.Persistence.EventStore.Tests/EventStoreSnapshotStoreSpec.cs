@@ -9,8 +9,8 @@ public sealed class EventStoreSnapshotStoreSpec : SnapshotStoreSpec
     // TODO: hack. Replace when https://github.com/akkadotnet/akka.net/issues/3811
     protected override bool SupportsSerialization => false;
     
-    public EventStoreSnapshotStoreSpec(DatabaseFixture databaseFixture)
-        : base(EventStoreConfiguration.Build(databaseFixture, "es-snapshot-spec"), nameof(EventStoreSnapshotStoreSpec))
+    public EventStoreSnapshotStoreSpec(EventStoreContainer eventStoreContainer)
+        : base(EventStoreConfiguration.Build(eventStoreContainer, "es-snapshot-spec"), nameof(EventStoreSnapshotStoreSpec))
     {
         Initialize();
     }

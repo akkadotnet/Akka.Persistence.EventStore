@@ -51,6 +51,9 @@ _site/
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 
+# Benchmark Results
+BenchmarkDotNet.Artifacts/
+
 # NUNIT
 *.VisualState.xml
 TestResult.xml
