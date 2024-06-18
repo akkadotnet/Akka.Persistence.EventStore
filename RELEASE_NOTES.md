@@ -1,3 +1,7 @@
+#### 1.5.25 June 18 2024 ####
+Upgrade Akka to version 1.5.25
+Upgrade EventStore to version 23.3.3
+
 #### 1.5.20 May 9 2024 ####
 This is a patch release with some minor refactoring and updates to dependencies.
 
