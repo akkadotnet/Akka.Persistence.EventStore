@@ -46,9 +46,12 @@ public static class EventStoreStreamSourceExtensions
         Func<ResolvedEvent, Task<TResult?>> deserializer)
     {
         return source
-            .SelectAsync(1, async evnt => await deserializer(evnt))
-            .Where(x => x != null)
-            .Select(x => x!);
+            .SelectAsync(1, async evnt => new
+            {
+                Deserialized = await deserializer(evnt)
+            })
+            .Where(x => x.Deserialized != null)
+            .Select(x => x.Deserialized!);
     }
     
     public static Source<TResult, TMat> DeSerializeWith<TResult, TMat>(
