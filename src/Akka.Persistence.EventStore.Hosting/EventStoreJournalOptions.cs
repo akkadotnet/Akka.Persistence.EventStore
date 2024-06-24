@@ -70,6 +70,9 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
 
         sb.AppendLine("}");
         
+        if (IsDefaultPlugin)
+            sb.AppendLine($"akka.persistence.query.plugin = {QueryPluginId}");
+        
         return sb;
     }
 }
