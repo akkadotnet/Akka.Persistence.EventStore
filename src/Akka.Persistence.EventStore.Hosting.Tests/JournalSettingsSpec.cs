@@ -26,17 +26,18 @@ akka.persistence.journal.eventstore {
         
         var actualConfig = opt.ToConfig().WithFallback(EventStorePersistence.DefaultConfiguration);
 
-        actualConfig = actualConfig.GetConfig(EventStorePersistence.JournalConfigPath);
+        var actualPluginConfig = actualConfig.GetConfig(EventStorePersistence.JournalConfigPath);
 
-        actualConfig.GetString("connection-string").Should().Be(defaultConfig.GetString("connection-string"));
-        actualConfig.GetString("adapter").Should().Be(defaultConfig.GetString("adapter"));
-        actualConfig.GetString("prefix").Should().Be(defaultConfig.GetString("prefix"));
-        actualConfig.GetString("tagged-stream-name-pattern").Should().Be(defaultConfig.GetString("tagged-stream-name-pattern"));
-        actualConfig.GetString("persistence-ids-stream-name").Should().Be(defaultConfig.GetString("persistence-ids-stream-name"));
-        actualConfig.GetString("persisted-events-stream-name").Should().Be(defaultConfig.GetString("persisted-events-stream-name"));
-        actualConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
-        actualConfig.GetString("materializer-dispatcher").Should()
+        actualPluginConfig.GetString("connection-string").Should().Be(defaultConfig.GetString("connection-string"));
+        actualPluginConfig.GetString("adapter").Should().Be(defaultConfig.GetString("adapter"));
+        actualPluginConfig.GetString("prefix").Should().Be(defaultConfig.GetString("prefix"));
+        actualPluginConfig.GetString("tagged-stream-name-pattern").Should().Be(defaultConfig.GetString("tagged-stream-name-pattern"));
+        actualPluginConfig.GetString("persistence-ids-stream-name").Should().Be(defaultConfig.GetString("persistence-ids-stream-name"));
+        actualPluginConfig.GetString("persisted-events-stream-name").Should().Be(defaultConfig.GetString("persisted-events-stream-name"));
+        actualPluginConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
+        actualPluginConfig.GetString("materializer-dispatcher").Should()
             .Be(defaultConfig.GetString("materializer-dispatcher"));
+        actualConfig.GetString("akka.persistence.query.plugin").Should().Be(EventStorePersistence.QueryConfigPath);
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
