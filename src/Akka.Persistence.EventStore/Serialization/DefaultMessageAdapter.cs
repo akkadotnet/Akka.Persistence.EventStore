@@ -139,6 +139,9 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
     [PublicAPI]
     protected virtual async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
     {
+        if (evnt.Event == null)
+            return null;
+        
         var metadata = await DeSerialize(evnt.Event.Metadata, typeof(StoredEventMetadata));
         
         return metadata as IStoredEventMetadata;
