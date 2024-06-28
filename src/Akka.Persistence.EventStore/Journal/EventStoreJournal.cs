@@ -29,6 +29,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     private EventStoreClient _eventStoreClient = null!;
     private IMessageAdapter _adapter = null!;
     private ActorMaterializer _mat = null!;
+    private ISourceQueueWithComplete<WriteQueueItem<AtomicWrite>> _writeQueue = null!;
     
     // ReSharper disable once ConvertToPrimaryConstructor
     public EventStoreJournal(Config journalConfig)
@@ -92,41 +93,12 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     protected override async Task<IImmutableList<Exception?>> WriteMessagesAsync(
         IEnumerable<AtomicWrite> atomicWrites)
     {
-        var results = new List<Exception?>();
+        var results = await Task.WhenAll(atomicWrites
+            .Select(x => _writeQueue
+                .Write(x)
+                .ContinueWith(result => result.IsCompletedSuccessfully ? null : result.Exception)));
 
-        foreach (var atomicWrite in atomicWrites)
-        {
-            var persistentMessages = (IImmutableList<IPersistentRepresentation>)atomicWrite.Payload;
-
-            var persistenceId = atomicWrite.PersistenceId;
-
-            var lowSequenceId = persistentMessages.Min(c => c.SequenceNr) - 2;
-
-            try
-            {
-                var expectedVersion = lowSequenceId < 0
-                    ? StreamRevision.None
-                    : StreamRevision.FromInt64(lowSequenceId);
-                
-                await Source.From(persistentMessages
-                    .Select(x => x.Timestamp > 0 ? x : x.WithTimestamp(DateTime.UtcNow.Ticks)))
-                    .SerializeWith(_adapter)
-                    .Grouped(persistentMessages.Count)
-                    .Select(x => new EventStoreWrite(
-                        _settings.GetStreamName(persistenceId, _tenantSettings),
-                        x.ToImmutableList(),
-                        expectedVersion))
-                    .RunWith(EventStoreSink.Create(_eventStoreClient), _mat);
-                
-                results.Add(null);
-            }
-            catch (Exception e)
-            {
-                results.Add(TryUnwrapException(e));
-            }
-        }
-
-        return results.ToImmutableList();
+        return results.Select(x => x != null ? TryUnwrapException(x) : null).ToImmutableList();
     }
 
     protected override async Task DeleteMessagesToAsync(string persistenceId, long toSequenceNr)
@@ -222,6 +194,39 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                     .Create(Context.System)
                     .WithDispatcher(_settings.MaterializerDispatcher),
                 namePrefix: "esWriteJournal");
+
+            _writeQueue = EventStoreSink
+                .CreateWriteQueue<AtomicWrite>(
+                    _eventStoreClient,
+                    async atomicWrite =>
+                    {
+                        var persistentMessages = (IImmutableList<IPersistentRepresentation>)atomicWrite.Payload;
+
+                        var persistenceId = atomicWrite.PersistenceId;
+
+                        var lowSequenceId = persistentMessages.Min(c => c.SequenceNr) - 2;
+
+                        var expectedVersion = lowSequenceId < 0
+                            ? StreamRevision.None
+                            : StreamRevision.FromInt64(lowSequenceId);
+
+                        var events = await Source
+                            .From(persistentMessages)
+                            .Select(x => x.Timestamp > 0 ? x : x.WithTimestamp(DateTime.UtcNow.Ticks))
+                            .SerializeWith(_adapter)
+                            .RunAggregate(
+                                ImmutableList<EventData>.Empty,
+                                (events, current) => events.Add(current),
+                                _mat);
+
+                        return (
+                            _settings.GetStreamName(persistenceId, _tenantSettings),
+                            events,
+                            expectedVersion);
+                    },
+                    _mat,
+                    _settings.Parallelism,
+                    _settings.BufferSize);
             
             if (!_settings.AutoInitialize)
                 return Status.Success.Instance;

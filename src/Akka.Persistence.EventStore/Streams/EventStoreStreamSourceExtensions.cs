@@ -11,42 +11,53 @@ public static class EventStoreStreamSourceExtensions
 {
     public static Source<EventData, NotUsed> SerializeWith<TSource>(
         this Source<TSource, NotUsed> source,
-        Func<TSource, Task<EventData>> serializer)
+        Func<TSource, Task<EventData>> serializer,
+        int parallelism = 1)
     {
         return source
-            .SelectAsync(1, serializer);
+            .SelectAsync(parallelism, serializer);
     }
     
     public static Source<EventData, NotUsed> SerializeWith<TSource>(
         this Source<TSource, NotUsed> source,
-        Func<TSource, EventData> serializer)
+        Func<TSource, EventData> serializer,
+        int parallelism = 1)
     {
         return source
-            .SerializeWith(x => Task.FromResult(serializer(x)));
+            .SerializeWith(
+                x => Task.FromResult(serializer(x)),
+                parallelism);
     }
     
     public static Source<EventData, NotUsed> SerializeWith(
         this Source<IPersistentRepresentation, NotUsed> source,
-        IMessageAdapter adapter)
+        IMessageAdapter adapter,
+        int parallelism = 1)
     {
         return source
-            .SerializeWith(adapter.Adapt);
+            .SerializeWith(
+                adapter.Adapt,
+                parallelism);
     }
 
     public static Source<EventData, NotUsed> SerializeWith(
         this Source<SelectedSnapshot, NotUsed> source,
-        IMessageAdapter adapter)
+        IMessageAdapter adapter,
+        int parallelism = 1)
     {
         return source
-            .SerializeWith(msg => adapter.Adapt(msg.Metadata, msg.Snapshot));
+            .SerializeWith(
+                msg => adapter.Adapt(msg.Metadata, msg.Snapshot),
+                parallelism);
     }
     
     public static Source<TResult, TMat> DeSerializeWith<TResult, TMat>(
         this Source<ResolvedEvent, TMat> source,
-        Func<ResolvedEvent, Task<TResult?>> deserializer)
+        Func<ResolvedEvent, Task<TResult?>> deserializer,
+        int parallelism = 1)
     {
         return source
-            .SelectAsync(1, async evnt => new
+            .SelectAsync(parallelism, async evnt => new
             {
                 Deserialized = await deserializer(evnt)
             })
@@ -56,50 +67,60 @@ public static class EventStoreStreamSourceExtensions
     
     public static Source<TResult, TMat> DeSerializeWith<TResult, TMat>(
         this Source<ResolvedEvent, TMat> source,
-        Func<ResolvedEvent, TResult?> deserializer)
+        Func<ResolvedEvent, TResult?> deserializer,
+        int parallelism = 1)
     {
         return source
-            .DeSerializeWith(msg => Task.FromResult(deserializer(msg)));
+            .DeSerializeWith(
+                msg => Task.FromResult(deserializer(msg)),
+                parallelism);
     }
 
     public static Source<ReplayCompletion<IPersistentRepresentation>, TMat> DeSerializeEventWith<TMat>(
         this Source<ResolvedEvent, TMat> source,
-        IMessageAdapter adapter)
+        IMessageAdapter adapter,
+        int parallelism = 1)
     {
         return source
             .DeSerializeWith(async evnt =>
-            {
-                var result = await adapter.AdaptEvent(evnt);
+                {
+                    var result = await adapter.AdaptEvent(evnt);
 
-                if (result == null)
-                    return null;
+                    if (result == null)
+                        return null;
 
-                return new ReplayCompletion<IPersistentRepresentation>(result, evnt.Link?.EventNumber ?? evnt.OriginalEventNumber);
-            });
+                    return new ReplayCompletion<IPersistentRepresentation>(result,
+                        evnt.Link?.EventNumber ?? evnt.OriginalEventNumber);
+                },
+                parallelism);
     }
     
     public static Source<ReplayCompletion<SelectedSnapshot>, TMat> DeSerializeSnapshotWith<TMat>(
         this Source<ResolvedEvent, TMat> source,
-        IMessageAdapter adapter)
+        IMessageAdapter adapter,
+        int parallelism = 1)
     {
         return source
             .DeSerializeWith(async evnt =>
-            {
-                var result = await adapter.AdaptSnapshot(evnt);
+                {
+                    var result = await adapter.AdaptSnapshot(evnt);
 
-                if (result == null)
-                    return null;
+                    if (result == null)
+                        return null;
 
-                return new ReplayCompletion<SelectedSnapshot>(result, evnt.Link?.EventNumber ?? evnt.OriginalEventNumber);
-            });
+                    return new ReplayCompletion<SelectedSnapshot>(result,
+                        evnt.Link?.EventNumber ?? evnt.OriginalEventNumber);
+                },
+                parallelism);
     }
     
     public static Source<DeserializedEvent<TResult>, TMat> DeserializeWith<TResult, TMat>(
         this Source<PersistentSubscriptionEvent, TMat> source,
-        Func<ResolvedEvent, Task<TResult>> deserializer)
+        Func<ResolvedEvent, Task<TResult>> deserializer,
+        int parallelism = 1)
     {
         return source
-            .SelectAsync(1, async msg =>
+            .SelectAsync(parallelism, async msg =>
             {
                 var deserialized = await deserializer(msg.Event);
 
@@ -109,10 +130,13 @@ public static class EventStoreStreamSourceExtensions
     
     public static Source<DeserializedEvent<IPersistentRepresentation?>, TMat> DeserializeWith<TMat>(
         this Source<PersistentSubscriptionEvent, TMat> source,
-        IMessageAdapter adapter)
+        IMessageAdapter adapter,
+        int parallelism = 1)
     {
         return source
-            .DeserializeWith(adapter.AdaptEvent);
+            .DeserializeWith(
+                adapter.AdaptEvent,
+                parallelism);
     }
 
     public static Source<TSource, TMat> Filter<TSource, TMat>(

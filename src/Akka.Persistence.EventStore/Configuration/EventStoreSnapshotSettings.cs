@@ -21,6 +21,8 @@ public class EventStoreSnapshotSettings : ISettingsWithAdapter
         DefaultSerializer = config.GetString("serializer");
         MaterializerDispatcher = config.GetString("materializer-dispatcher", "akka.actor.default-dispatcher");
         Tenant = config.GetString("tenant");
+        Parallelism = config.GetInt("parallelism", 3);
+        BufferSize = config.GetInt("buffer-size", 5000);
     }
 
     public string ConnectionString { get; }
@@ -29,6 +31,8 @@ public class EventStoreSnapshotSettings : ISettingsWithAdapter
     public string StreamPrefix { get; }
     public string Tenant { get; }
     public string MaterializerDispatcher { get; }
+    public int Parallelism { get; }
+    public int BufferSize { get; }
     
     public string GetStreamName(string persistenceId, EventStoreTenantSettings tenantSettings)
     {

@@ -35,6 +35,8 @@ akka.persistence.journal.eventstore {
         actualPluginConfig.GetString("persistence-ids-stream-name").Should().Be(defaultConfig.GetString("persistence-ids-stream-name"));
         actualPluginConfig.GetString("persisted-events-stream-name").Should().Be(defaultConfig.GetString("persisted-events-stream-name"));
         actualPluginConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
+        actualPluginConfig.GetString("parallelism").Should().Be(defaultConfig.GetString("parallelism"));
+        actualPluginConfig.GetString("buffer-size").Should().Be(defaultConfig.GetString("buffer-size"));
         actualPluginConfig.GetString("materializer-dispatcher").Should()
             .Be(defaultConfig.GetString("materializer-dispatcher"));
         actualConfig.GetString("akka.persistence.query.plugin").Should().Be(EventStorePersistence.QueryConfigPath);
@@ -54,7 +56,9 @@ akka.persistence.journal.eventstore {
             PersistedEventsStreamName = "persisted-events-custom",
             PersistenceIdsStreamName = "persistence-ids-custom",
             Tenant = "tenant",
-            MaterializerDispatcher = "custom-dispatcher"
+            MaterializerDispatcher = "custom-dispatcher",
+            Parallelism = 10,
+            BufferSize = 1000
         };
 
         var fullConfig = opt.ToConfig();
@@ -71,6 +75,8 @@ akka.persistence.journal.eventstore {
         config.PersistedEventsStreamName.Should().Be("persisted-events-custom");
         config.PersistenceIdsStreamName.Should().Be("persistence-ids-custom");
         config.Tenant.Should().Be("tenant");
+        config.Parallelism.Should().Be(10);
+        config.BufferSize.Should().Be(1000);
         config.MaterializerDispatcher.Should().Be("custom-dispatcher");
     }
 }

@@ -25,6 +25,8 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
     public TimeSpan? QueryNoStreamTimeout { get; init; }
     public string? Tenant { get; init; }
     public string? MaterializerDispatcher { get; init; }
+    public int? Parallelism { get; init; }
+    public int? BufferSize { get; init; }
     public override string Identifier { get; set; } = identifier;
     public Config DefaultQueryConfig => DefaultQuery.MoveTo(QueryPluginId);
     protected override Config InternalDefaultConfig => Default;
@@ -58,6 +60,12 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
         
         if (!string.IsNullOrEmpty(Tenant))
             sb.AppendLine($"tenant = {Tenant.ToHocon()}");
+
+        if (Parallelism.HasValue)
+            sb.AppendLine($"parallelism = {Parallelism.ToHocon()}");
+        
+        if (BufferSize.HasValue)
+            sb.AppendLine($"buffer-size = {BufferSize.ToHocon()}");
 
         base.Build(sb);
         

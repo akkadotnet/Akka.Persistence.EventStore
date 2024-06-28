@@ -22,6 +22,7 @@ public class EventStoreSnapshotStore : SnapshotStore
     private readonly EventStoreSnapshotSettings _settings;
     private readonly EventStoreTenantSettings _tenantSettings;
     private readonly ActorMaterializer _mat;
+    private readonly ISourceQueueWithComplete<WriteQueueItem<SelectedSnapshot>> _writeQueue;
 
     public EventStoreSnapshotStore(Config snapshotConfig)
     {
@@ -37,6 +38,28 @@ public class EventStoreSnapshotStore : SnapshotStore
                 .Create(Context.System)
                 .WithDispatcher(_settings.MaterializerDispatcher),
             namePrefix: "esSnapshotJournal");
+        
+        _writeQueue = EventStoreSink
+            .CreateWriteQueue<SelectedSnapshot>(
+                _eventStoreClient,
+                async snapshot =>
+                {
+                    var events = await Source
+                        .Single(snapshot)
+                        .SerializeWith(_messageAdapter)
+                        .RunAggregate(
+                            ImmutableList<EventData>.Empty,
+                            (events, current) => events.Add(current),
+                            _mat);
+
+                    return (
+                        _settings.GetStreamName(snapshot.Metadata.PersistenceId, _tenantSettings),
+                        events,
+                        null);
+                },
+                _mat,
+                _settings.Parallelism,
+                _settings.BufferSize);
     }
 
     protected override async Task<SelectedSnapshot?> LoadAsync(
@@ -50,12 +73,7 @@ public class EventStoreSnapshotStore : SnapshotStore
 
     protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot)
     {
-        await Source.Single(new SelectedSnapshot(metadata, snapshot))
-            .SerializeWith(_messageAdapter)
-            .Select(x => new EventStoreWrite(
-                _settings.GetStreamName(metadata.PersistenceId, _tenantSettings),
-                ImmutableList.Create(x)))
-            .RunWith(EventStoreSink.Create(_eventStoreClient), _mat);
+        await _writeQueue.Write(new SelectedSnapshot(metadata, snapshot));
     }
 
     protected override Task DeleteAsync(SnapshotMetadata metadata)

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Akka.Actor;
 using BenchmarkDotNet.Attributes;
 
@@ -44,6 +45,38 @@ public class EventStoreWriteBenchmark
                 new WriteEventsActor.Commands.WriteEvents(1));
         }
     }
+    
+    [Benchmark]
+    public async Task Write10EventsToFiveActors()
+    {
+        var writers = Enumerable
+            .Range(0, 5)
+            .Select(_ => _sys!.ActorOf(Props.Create(() => new WriteEventsActor(Guid.NewGuid().ToString()))))
+            .ToImmutableList();
+
+        for (var i = 0; i < 10; i++)
+        {
+            await Task.WhenAll(writers
+                .Select(x => x.Ask<WriteEventsActor.Responses.WriteEventsResponse>(
+                    new WriteEventsActor.Commands.WriteEvents(1))));
+        }
+    }
+    
+    [Benchmark]
+    public async Task Write100EventsToFiveActors()
+    {
+        var writers = Enumerable
+            .Range(0, 5)
+            .Select(_ => _sys!.ActorOf(Props.Create(() => new WriteEventsActor(Guid.NewGuid().ToString()))))
+            .ToImmutableList();
+
+        for (var i = 0; i < 100; i++)
+        {
+            await Task.WhenAll(writers
+                .Select(x => x.Ask<WriteEventsActor.Responses.WriteEventsResponse>(
+                    new WriteEventsActor.Commands.WriteEvents(1))));
+        }
+    }
 
     [Benchmark]
     public async Task Write10EventsBatched()
@@ -61,6 +94,32 @@ public class EventStoreWriteBenchmark
         
         await writeEventsActor.Ask<WriteEventsActor.Responses.WriteEventsResponse>(
             new WriteEventsActor.Commands.WriteEvents(100));
+    }
+    
+    [Benchmark]
+    public async Task Write10EventsBatchedToFiveActors()
+    {
+        var writers = Enumerable
+            .Range(0, 5)
+            .Select(_ => _sys!.ActorOf(Props.Create(() => new WriteEventsActor(Guid.NewGuid().ToString()))))
+            .ToImmutableList();
+
+        await Task.WhenAll(writers
+            .Select(x => x.Ask<WriteEventsActor.Responses.WriteEventsResponse>(
+                new WriteEventsActor.Commands.WriteEvents(10))));
+    }
+    
+    [Benchmark]
+    public async Task Write100EventsBatchedToFiveActors()
+    {
+        var writers = Enumerable
+            .Range(0, 5)
+            .Select(_ => _sys!.ActorOf(Props.Create(() => new WriteEventsActor(Guid.NewGuid().ToString()))))
+            .ToImmutableList();
+
+        await Task.WhenAll(writers
+            .Select(x => x.Ask<WriteEventsActor.Responses.WriteEventsResponse>(
+                new WriteEventsActor.Commands.WriteEvents(100))));
     }
 
     private class WriteEventsActor : ReceivePersistentActor

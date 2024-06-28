@@ -24,7 +24,9 @@ public static class HostingExtensions
         string? persistedEventsStreamName = null,
         string? tenantStreamNamePattern = null,
         string? materializerDispatcher = null,
-        TimeSpan? queryNoStreamTimeout = null)
+        TimeSpan? queryNoStreamTimeout = null,
+        int? parallelism = null,
+        int? bufferSize = null)
     {
         if (mode == PersistenceMode.SnapshotStore && journalBuilder is not null)
             throw new Exception($"{nameof(journalBuilder)} can only be set when {nameof(mode)} is set to either {PersistenceMode.Both} or {PersistenceMode.Journal}");
@@ -43,7 +45,9 @@ public static class HostingExtensions
             PersistenceIdsStreamName = persistenceIdsStreamName,
             Tenant = tenant,
             MaterializerDispatcher = materializerDispatcher,
-            QueryNoStreamTimeout = queryNoStreamTimeout
+            QueryNoStreamTimeout = queryNoStreamTimeout,
+            Parallelism = parallelism,
+            BufferSize = bufferSize
         };
         
         var adapters = new AkkaPersistenceJournalBuilder(journalOptions.Identifier, builder);
@@ -59,7 +63,9 @@ public static class HostingExtensions
             Adapter = adapter,
             Prefix = snapshotStreamPrefix,
             Tenant = tenant,
-            MaterializerDispatcher = materializerDispatcher
+            MaterializerDispatcher = materializerDispatcher,
+            Parallelism = parallelism,
+            BufferSize = bufferSize
         };
 
         var tenantOptions = !string.IsNullOrEmpty(tenantStreamNamePattern)
