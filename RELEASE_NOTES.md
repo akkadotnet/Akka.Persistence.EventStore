@@ -1,3 +1,8 @@
+#### 1.5.25 June 28 2024 ####
+Upgrade Akka to version 1.5.26
+[Fix for an issue](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/45) where tagged query would fail if some matching
+events was deleted
+
 #### 1.5.25 June 18 2024 ####
 Upgrade Akka to version 1.5.25
 Upgrade EventStore to version 23.3.3
