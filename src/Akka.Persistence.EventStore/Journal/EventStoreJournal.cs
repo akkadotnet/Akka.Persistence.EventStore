@@ -209,10 +209,12 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                         var expectedVersion = lowSequenceId < 0
                             ? StreamRevision.None
                             : StreamRevision.FromInt64(lowSequenceId);
+                        
+                        var currentTime = DateTime.UtcNow.Ticks;
 
                         var events = await Source
                             .From(persistentMessages)
-                            .Select(x => x.Timestamp > 0 ? x : x.WithTimestamp(DateTime.UtcNow.Ticks))
+                            .Select(x => x.Timestamp > 0 ? x : x.WithTimestamp(currentTime))
                             .SerializeWith(_adapter)
                             .RunAggregate(
                                 ImmutableList<EventData>.Empty,
