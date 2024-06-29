@@ -25,7 +25,7 @@ public class EventStoreJournalSettings : ISettingsWithAdapter
         AutoInitialize = config.GetBoolean("auto-initialize");
         MaterializerDispatcher = config.GetString("materializer-dispatcher", "akka.actor.default-dispatcher");
         Tenant = config.GetString("tenant");
-        Parallelism = config.GetInt("parallelism", 3);
+        Parallelism = config.GetInt("parallelism", 6);
         BufferSize = config.GetInt("buffer-size", 5000);
     }
 

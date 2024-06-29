@@ -46,7 +46,7 @@ public class EventStoreSnapshotStore : SnapshotStore
                 {
                     var events = await Source
                         .Single(snapshot)
-                        .SerializeWith(_messageAdapter)
+                        .SerializeWith(_messageAdapter, _settings.Parallelism)
                         .RunAggregate(
                             ImmutableList<EventData>.Empty,
                             (events, current) => events.Add(current),
@@ -126,7 +126,7 @@ public class EventStoreSnapshotStore : SnapshotStore
 
         return await EventStoreSource
             .FromStream(_eventStoreClient, filter)
-            .DeSerializeSnapshotWith(_messageAdapter)
+            .DeSerializeSnapshotWith(_messageAdapter, _settings.Parallelism)
             .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion<SelectedSnapshot>>(), _mat);

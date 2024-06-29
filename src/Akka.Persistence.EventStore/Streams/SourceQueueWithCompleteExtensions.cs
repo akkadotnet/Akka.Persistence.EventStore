@@ -2,9 +2,9 @@ using Akka.Streams;
 
 namespace Akka.Persistence.EventStore.Streams;
 
-public static class SourceQueueWithCompleteExtensions
+internal static class SourceQueueWithCompleteExtensions
 {
-    public static async Task Write<T>(this ISourceQueueWithComplete<WriteQueueItem<T>> queue, T item)
+    internal static async Task Write<T>(this ISourceQueueWithComplete<WriteQueueItem<T>> queue, T item)
     {
         var promise = new TaskCompletionSource<NotUsed>(TaskCreationOptions.RunContinuationsAsynchronously);
         

@@ -12,51 +12,33 @@ public static class EventStoreSink
     public static Sink<EventStoreWrite, Task<Done>> Create(EventStoreClient client, int parallelism = 5)
     {
         return Flow.Create<EventStoreWrite>()
-            .Batch(
-                parallelism,
-                ImmutableList.Create,
-                (current, item) => current.Add(item))
-            .SelectAsync(1, async writeRequests =>
+            .SelectAsync(parallelism, async writeRequest =>
             {
-                var writes = writeRequests
-                    .GroupBy(x => x.Stream)
-                    .Select(async requestsForStream =>
+                try
+                {
+                    if (writeRequest.ExpectedRevision != null)
                     {
-                        foreach (var writeRequest in requestsForStream)
-                        {
-                            try
-                            {
-                                if (writeRequest.Events.Any())
-                                {
-                                    if (writeRequest.ExpectedRevision != null)
-                                    {
-                                        await client.AppendToStreamAsync(
-                                            writeRequest.Stream,
-                                            writeRequest.ExpectedRevision.Value,
-                                            writeRequest.Events,
-                                            configureOperationOptions: options => options.ThrowOnAppendFailure = true);
-                                    }
-                                    else
-                                    {
-                                        await client.AppendToStreamAsync(
-                                            writeRequest.Stream,
-                                            writeRequest.ExpectedState ?? StreamState.Any,
-                                            writeRequest.Events,
-                                            configureOperationOptions: options => options.ThrowOnAppendFailure = true);
-                                    }
-                                }
+                        await client.AppendToStreamAsync(
+                            writeRequest.Stream,
+                            writeRequest.ExpectedRevision.Value,
+                            writeRequest.Events,
+                            configureOperationOptions: options => options.ThrowOnAppendFailure = true);
+                    }
+                    else
+                    {
+                        await client.AppendToStreamAsync(
+                            writeRequest.Stream,
+                            writeRequest.ExpectedState ?? StreamState.Any,
+                            writeRequest.Events,
+                            configureOperationOptions: options => options.ThrowOnAppendFailure = true);
+                    }
 
-                                writeRequest.Ack.TrySetResult(NotUsed.Instance);
-                            }
-                            catch (Exception e)
-                            {
-                                writeRequest.Ack.TrySetException(e);
-                            }
-                        }
-                    })
-                    .ToImmutableList();
-
-                await Task.WhenAll(writes);
+                    writeRequest.Ack.TrySetResult(NotUsed.Instance);
+                }
+                catch (Exception e)
+                {
+                    writeRequest.Ack.TrySetException(e);
+                }
 
                 return NotUsed.Instance;
             })
@@ -64,9 +46,10 @@ public static class EventStoreSink
             .Named("EventStoreSink");
     }
 
-    public static ISourceQueueWithComplete<WriteQueueItem<T>> CreateWriteQueue<T>(
+    internal static ISourceQueueWithComplete<WriteQueueItem<T>> CreateWriteQueue<T>(
         EventStoreClient client,
-        Func<T, Task<(string stream, IImmutableList<EventData> events, StreamRevision? expectedRevision)>> toWriteRequest,
+        Func<T, Task<(string stream, IImmutableList<EventData> events, StreamRevision? expectedRevision)>>
+            toWriteRequest,
         ActorMaterializer materializer,
         int parallelism = 5,
         int bufferSize = 5000)
