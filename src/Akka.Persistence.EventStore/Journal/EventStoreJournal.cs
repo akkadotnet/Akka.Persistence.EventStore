@@ -31,7 +31,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     private EventStoreClient _eventStoreClient = null!;
     private IMessageAdapter _adapter = null!;
     private ActorMaterializer _mat = null!;
-    private ISourceQueueWithComplete<WriteQueueItem<JournalWrite>> _writeQueue = null!;
+    private EventStoreWriter<IPersistentRepresentation> _writeQueue = null!;
     
     private readonly Dictionary<string, Task> _writeInProgress = new();
     
@@ -109,25 +109,35 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         var messagesList = atomicWrites.ToImmutableList();
         var persistenceId = messagesList.Head().PersistenceId;
 
-        var future = _writeQueue.Write(new JournalWrite(
-            persistenceId,
-            messagesList.Min(x => x.LowestSequenceNr),
-            messagesList
-                .SelectMany(y => (IImmutableList<IPersistentRepresentation>)y.Payload)
-                .OrderBy(y => y.SequenceNr)
-                .ToImmutableList()))
+        var lowSequenceId = messagesList.Min(x => x.LowestSequenceNr) - 2;
+        
+        var expectedVersion = lowSequenceId < 0
+            ? StreamRevision.None
+            : StreamRevision.FromInt64(lowSequenceId);
+
+        var currentTimestamp = DateTime.Now.Ticks;
+
+        var future = _writeQueue
+            .Write(
+                _settings.GetStreamName(persistenceId, _tenantSettings),
+                messagesList
+                    .SelectMany(y => (IImmutableList<IPersistentRepresentation>)y.Payload)
+                    .Select(y => y.Timestamp > 0 ? y : y.WithTimestamp(currentTimestamp))
+                    .OrderBy(y => y.SequenceNr)
+                    .ToImmutableList(),
+                expectedVersion)
             .ContinueWith(result =>
-            {
-                var exception = result.Exception != null ? TryUnwrapException(result.Exception) : null;
-                
-                return (IImmutableList<Exception?>)Enumerable
-                    .Range(0, messagesList.Count)
-                    .Select(_ => exception)
-                    .ToImmutableList();
-            },
-            cancellationToken: _pendingWriteCts.Token,
-            continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
-            scheduler: TaskScheduler.Default);
+                {
+                    var exception = result.Exception != null ? TryUnwrapException(result.Exception) : null;
+
+                    return (IImmutableList<Exception?>)Enumerable
+                        .Range(0, messagesList.Count)
+                        .Select(_ => exception)
+                        .ToImmutableList();
+                },
+                cancellationToken: _pendingWriteCts.Token,
+                continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
+                scheduler: TaskScheduler.Default);
         
         _writeInProgress[persistenceId] = future;
         var self = Self;
@@ -265,38 +275,14 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                     .Create(Context.System)
                     .WithDispatcher(_settings.MaterializerDispatcher),
                 namePrefix: "esWriteJournal");
-
-            _writeQueue = EventStoreSink
-                .CreateWriteQueue<JournalWrite>(
-                    _eventStoreClient,
-                    async journalWrite =>
-                    {
-                        var lowSequenceId = journalWrite.LowestSequenceNumber - 2;
-
-                        var expectedVersion = lowSequenceId < 0
-                            ? StreamRevision.None
-                            : StreamRevision.FromInt64(lowSequenceId);
-                        
-                        var currentTime = DateTime.UtcNow.Ticks;
-
-                        var events = await Source
-                            .From(journalWrite.Events)
-                            .Select(x => x.Timestamp > 0 ? x : x.WithTimestamp(currentTime))
-                            .SerializeWith(_adapter, _settings.Parallelism)
-                            .RunAggregate(
-                                ImmutableList<EventData>.Empty,
-                                (events, current) => events.Add(current),
-                                _mat);
-
-                        return (
-                            _settings.GetStreamName(journalWrite.PersistenceId, _tenantSettings),
-                            events,
-                            expectedVersion);
-                    },
-                    _mat,
-                    _settings.Parallelism,
-                    _settings.BufferSize);
             
+            _writeQueue = EventStoreWriter<IPersistentRepresentation>.From(
+                _eventStoreClient,
+                evnt => _adapter.Adapt(evnt),
+                _mat,
+                _settings.Parallelism,
+                _settings.BufferSize);
+
             if (!_settings.AutoInitialize)
                 return Status.Success.Instance;
 

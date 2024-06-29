@@ -9,48 +9,6 @@ namespace Akka.Persistence.EventStore.Streams;
 [PublicAPI]
 public static class EventStoreStreamSourceExtensions
 {
-    public static Source<EventData, NotUsed> SerializeWith<TSource>(
-        this Source<TSource, NotUsed> source,
-        Func<TSource, Task<EventData>> serializer,
-        int parallelism = 1)
-    {
-        return source
-            .SelectAsync(parallelism, serializer);
-    }
-    
-    public static Source<EventData, NotUsed> SerializeWith<TSource>(
-        this Source<TSource, NotUsed> source,
-        Func<TSource, EventData> serializer,
-        int parallelism = 1)
-    {
-        return source
-            .SerializeWith(
-                x => Task.FromResult(serializer(x)),
-                parallelism);
-    }
-    
-    public static Source<EventData, NotUsed> SerializeWith(
-        this Source<IPersistentRepresentation, NotUsed> source,
-        IMessageAdapter adapter,
-        int parallelism = 1)
-    {
-        return source
-            .SerializeWith(
-                adapter.Adapt,
-                parallelism);
-    }
-
-    public static Source<EventData, NotUsed> SerializeWith(
-        this Source<SelectedSnapshot, NotUsed> source,
-        IMessageAdapter adapter,
-        int parallelism = 1)
-    {
-        return source
-            .SerializeWith(
-                msg => adapter.Adapt(msg.Metadata, msg.Snapshot),
-                parallelism);
-    }
-    
     public static Source<TResult, TMat> DeSerializeWith<TResult, TMat>(
         this Source<ResolvedEvent, TMat> source,
         Func<ResolvedEvent, Task<TResult?>> deserializer,
