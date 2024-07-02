@@ -25,6 +25,8 @@ public class EventStoreJournalSettings : ISettingsWithAdapter
         AutoInitialize = config.GetBoolean("auto-initialize");
         MaterializerDispatcher = config.GetString("materializer-dispatcher", "akka.actor.default-dispatcher");
         Tenant = config.GetString("tenant");
+        Parallelism = config.GetInt("parallelism", 6);
+        BufferSize = config.GetInt("buffer-size", 5000);
     }
 
     public string ConnectionString { get; }
@@ -37,6 +39,8 @@ public class EventStoreJournalSettings : ISettingsWithAdapter
     public string TaggedStreamNamePattern { get; }
     public string PersistenceIdsStreamName { get; }
     public string PersistedEventsStreamName { get; }
+    public int Parallelism { get; }
+    public int BufferSize { get; }
 
     public string GetStreamName(string persistenceId, EventStoreTenantSettings tenantSettings)
     {

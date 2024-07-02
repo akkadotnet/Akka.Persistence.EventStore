@@ -12,6 +12,7 @@ using Akka.Persistence.EventStore.Streams;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.Streams.Implementation.Stages;
+using Akka.Util.Internal;
 using EventStore.Client;
 using JetBrains.Annotations;
 
@@ -25,26 +26,39 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     private readonly EventStoreJournalSettings _settings;
     private readonly EventStoreTenantSettings _tenantSettings;
     private readonly ILoggingAdapter _log;
+    private readonly CancellationTokenSource _pendingWriteCts;
     
     private EventStoreClient _eventStoreClient = null!;
     private IMessageAdapter _adapter = null!;
     private ActorMaterializer _mat = null!;
+    private EventStoreWriter<IPersistentRepresentation> _writeQueue = null!;
+    
+    private readonly Dictionary<string, Task> _writeInProgress = new();
     
     // ReSharper disable once ConvertToPrimaryConstructor
     public EventStoreJournal(Config journalConfig)
     {
         _log = Context.GetLogger();
+        _pendingWriteCts = new CancellationTokenSource();
+        
         _settings = new EventStoreJournalSettings(journalConfig);
         _tenantSettings = EventStoreTenantSettings.GetFrom(Context.System);
     }
 
     public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr)
     {
+        if (_writeInProgress.TryGetValue(persistenceId, out var wip))
+        {
+            // We don't care whether the write succeeded or failed
+            // We just want it to finish.
+            await new NoThrowAwaiter(wip);
+        }
+        
         var filter = EventStoreEventStreamFilter.FromEnd(_settings.GetStreamName(persistenceId, _tenantSettings), fromSequenceNr);
         
         var lastMessage = await EventStoreSource
             .FromStream(_eventStoreClient, filter)
-            .DeSerializeEventWith(_adapter)
+            .DeSerializeEventWith(_adapter, _settings.Parallelism)
             .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), _mat);
@@ -83,50 +97,61 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         
         await EventStoreSource
             .FromStream(_eventStoreClient, filter)
-            .DeSerializeEventWith(_adapter)
+            .DeSerializeEventWith(_adapter, _settings.Parallelism)
             .Filter(filter)
             .Take(n: max)
             .RunForeach(r => recoveryCallback(r.Data), _mat);
     }
 
-    protected override async Task<IImmutableList<Exception?>> WriteMessagesAsync(
+    protected override Task<IImmutableList<Exception?>> WriteMessagesAsync(
         IEnumerable<AtomicWrite> atomicWrites)
     {
-        var results = new List<Exception?>();
+        var messagesList = atomicWrites.ToImmutableList();
+        var persistenceId = messagesList.Head().PersistenceId;
 
-        foreach (var atomicWrite in atomicWrites)
-        {
-            var persistentMessages = (IImmutableList<IPersistentRepresentation>)atomicWrite.Payload;
+        var lowSequenceId = messagesList.Min(x => x.LowestSequenceNr) - 2;
+        
+        var expectedVersion = lowSequenceId < 0
+            ? StreamRevision.None
+            : StreamRevision.FromInt64(lowSequenceId);
 
-            var persistenceId = atomicWrite.PersistenceId;
+        var currentTimestamp = DateTime.Now.Ticks;
 
-            var lowSequenceId = persistentMessages.Min(c => c.SequenceNr) - 2;
+        var future = _writeQueue
+            .Write(
+                _settings.GetStreamName(persistenceId, _tenantSettings),
+                messagesList
+                    .SelectMany(y => (IImmutableList<IPersistentRepresentation>)y.Payload)
+                    .Select(y => y.Timestamp > 0 ? y : y.WithTimestamp(currentTimestamp))
+                    .OrderBy(y => y.SequenceNr)
+                    .ToImmutableList(),
+                expectedVersion)
+            .ContinueWith(result =>
+                {
+                    var exception = result.Exception != null ? TryUnwrapException(result.Exception) : null;
 
-            try
-            {
-                var expectedVersion = lowSequenceId < 0
-                    ? StreamRevision.None
-                    : StreamRevision.FromInt64(lowSequenceId);
-                
-                await Source.From(persistentMessages
-                    .Select(x => x.Timestamp > 0 ? x : x.WithTimestamp(DateTime.UtcNow.Ticks)))
-                    .SerializeWith(_adapter)
-                    .Grouped(persistentMessages.Count)
-                    .Select(x => new EventStoreWrite(
-                        _settings.GetStreamName(persistenceId, _tenantSettings),
-                        x.ToImmutableList(),
-                        expectedVersion))
-                    .RunWith(EventStoreSink.Create(_eventStoreClient), _mat);
-                
-                results.Add(null);
-            }
-            catch (Exception e)
-            {
-                results.Add(TryUnwrapException(e));
-            }
-        }
-
-        return results.ToImmutableList();
+                    return (IImmutableList<Exception?>)Enumerable
+                        .Range(0, messagesList.Count)
+                        .Select(_ => exception)
+                        .ToImmutableList();
+                },
+                cancellationToken: _pendingWriteCts.Token,
+                continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
+                scheduler: TaskScheduler.Default);
+        
+        _writeInProgress[persistenceId] = future;
+        var self = Self;
+        
+        // When we are done, we want to send a 'WriteFinished' so that
+        // Sequence Number reads won't block/await/etc.
+        future.ContinueWith(
+            continuationAction: p => self.Tell(new WriteFinished(persistenceId, p)),
+            cancellationToken: _pendingWriteCts.Token,
+            continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
+            scheduler: TaskScheduler.Default);
+        
+        // But we still want to return the future from `AsyncWriteMessages`
+        return future;
     }
 
     protected override async Task DeleteMessagesToAsync(string persistenceId, long toSequenceNr)
@@ -137,7 +162,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         
         var lastMessage = await EventStoreSource
             .FromStream(_eventStoreClient, filter)
-            .DeSerializeEventWith(_adapter)
+            .DeSerializeEventWith(_adapter, _settings.Parallelism)
             .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), _mat);
@@ -184,6 +209,34 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         BecomeStacked(Initializing);
     }
     
+    protected override void PostStop()
+    {
+        base.PostStop();
+        _pendingWriteCts.Cancel();
+        _pendingWriteCts.Dispose();
+    }
+    
+    public override void AroundPreRestart(Exception cause, object? message)
+    {
+        _log.Error(cause, $"EventStore Journal Error on {message?.GetType().ToString() ?? "null"}");
+        base.AroundPreRestart(cause, message);
+    }
+    
+    protected override bool ReceivePluginInternal(object message)
+    {
+        switch (message)
+        {
+            case WriteFinished wf:
+                if (_writeInProgress.TryGetValue(wf.PersistenceId, out var latestPending) & (latestPending == wf.Future))
+                    _writeInProgress.Remove(wf.PersistenceId);
+                
+                return true;
+
+            default:
+                return false;
+        }
+    }
+    
     private bool Initializing(object message)
     {
         switch (message)
@@ -223,6 +276,13 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                     .WithDispatcher(_settings.MaterializerDispatcher),
                 namePrefix: "esWriteJournal");
             
+            _writeQueue = EventStoreWriter<IPersistentRepresentation>.From(
+                _eventStoreClient,
+                evnt => _adapter.Adapt(evnt),
+                _mat,
+                _settings.Parallelism,
+                _settings.BufferSize);
+
             if (!_settings.AutoInitialize)
                 return Status.Success.Instance;
 

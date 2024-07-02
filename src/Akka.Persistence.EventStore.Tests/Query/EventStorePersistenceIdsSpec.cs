@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 
 namespace Akka.Persistence.EventStore.Tests.Query;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreTestsDatabaseCollection))]
 public class EventStorePersistenceIdsSpec : PersistenceIdsSpec
 {
     public EventStorePersistenceIdsSpec(EventStoreContainer eventStoreContainer, ITestOutputHelper output) :

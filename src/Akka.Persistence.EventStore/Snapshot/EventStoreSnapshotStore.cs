@@ -22,6 +22,7 @@ public class EventStoreSnapshotStore : SnapshotStore
     private readonly EventStoreSnapshotSettings _settings;
     private readonly EventStoreTenantSettings _tenantSettings;
     private readonly ActorMaterializer _mat;
+    private readonly EventStoreWriter<SelectedSnapshot> _writeQueue;
 
     public EventStoreSnapshotStore(Config snapshotConfig)
     {
@@ -37,6 +38,13 @@ public class EventStoreSnapshotStore : SnapshotStore
                 .Create(Context.System)
                 .WithDispatcher(_settings.MaterializerDispatcher),
             namePrefix: "esSnapshotJournal");
+        
+        _writeQueue = EventStoreWriter<SelectedSnapshot>.From(
+            _eventStoreClient,
+            snapshot => _messageAdapter.Adapt(snapshot.Metadata, snapshot.Snapshot),
+            _mat,
+            _settings.Parallelism,
+            _settings.BufferSize);
     }
 
     protected override async Task<SelectedSnapshot?> LoadAsync(
@@ -50,12 +58,9 @@ public class EventStoreSnapshotStore : SnapshotStore
 
     protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot)
     {
-        await Source.Single(new SelectedSnapshot(metadata, snapshot))
-            .SerializeWith(_messageAdapter)
-            .Select(x => new EventStoreWrite(
-                _settings.GetStreamName(metadata.PersistenceId, _tenantSettings),
-                ImmutableList.Create(x)))
-            .RunWith(EventStoreSink.Create(_eventStoreClient), _mat);
+        await _writeQueue.Write(
+            _settings.GetStreamName(metadata.PersistenceId, _tenantSettings),
+            ImmutableList.Create(new SelectedSnapshot(metadata, snapshot)));
     }
 
     protected override Task DeleteAsync(SnapshotMetadata metadata)
@@ -108,7 +113,7 @@ public class EventStoreSnapshotStore : SnapshotStore
 
         return await EventStoreSource
             .FromStream(_eventStoreClient, filter)
-            .DeSerializeSnapshotWith(_messageAdapter)
+            .DeSerializeSnapshotWith(_messageAdapter, _settings.Parallelism)
             .Filter(filter)
             .Take(1)
             .RunWith(new FirstOrDefault<ReplayCompletion<SelectedSnapshot>>(), _mat);

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreTestsDatabaseCollection))]
 public class EventStoreJournalSpec : JournalSpec
 {
     protected override bool SupportsRejectingNonSerializableObjects => false;

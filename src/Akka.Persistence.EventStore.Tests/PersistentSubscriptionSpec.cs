@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreTestsDatabaseCollection))]
 public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 {
     private readonly EventStorePersistentSubscriptionsClient _subscriptionClient;
@@ -59,7 +59,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         await firstMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
         
         await _eventStoreClient.AppendToStreamAsync(
             streamName,
@@ -74,7 +74,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         await secondMessage.Ack();
         
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
 
         probe.Cancel();
     }
@@ -118,7 +118,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         await firstMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
 
         await _subscriptionClient.RestartSubsystemAsync();
 
@@ -137,7 +137,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 
         await secondMessage.Ack();
         
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
 
         probe.Cancel();
     }

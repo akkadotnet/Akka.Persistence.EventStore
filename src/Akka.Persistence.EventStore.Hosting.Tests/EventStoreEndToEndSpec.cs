@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreHostingTestsDatabaseCollection))]
 public class EventStoreEndToEndSpec(ITestOutputHelper output, EventStoreContainer fixture)
     : Akka.Hosting.TestKit.TestKit(nameof(EventStoreEndToEndSpec), output)
 {
