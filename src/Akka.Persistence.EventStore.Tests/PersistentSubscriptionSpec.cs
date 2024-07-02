@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreTestsDatabaseCollection))]
 public class PersistentSubscriptionSpec : Akka.TestKit.Xunit2.TestKit
 {
     private readonly EventStorePersistentSubscriptionsClient _subscriptionClient;

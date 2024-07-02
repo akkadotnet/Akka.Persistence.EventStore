@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreTestsDatabaseCollection))]
 public sealed class EventStoreSnapshotStoreSpec : SnapshotStoreSpec
 {
     // TODO: hack. Replace when https://github.com/akkadotnet/akka.net/issues/3811

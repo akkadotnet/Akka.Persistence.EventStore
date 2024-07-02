@@ -11,7 +11,7 @@ using Xunit.Sdk;
 
 namespace Akka.Persistence.EventStore.Tests.Issues;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreTestsDatabaseCollection))]
 public class Issue44_Problem_querying_deleted_events : Akka.TestKit.Xunit2.TestKit
 {
     private readonly IReadJournal _readJournal;

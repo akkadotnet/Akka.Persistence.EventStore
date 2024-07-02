@@ -12,7 +12,7 @@ using Xunit.Sdk;
 
 namespace Akka.Persistence.EventStore.Tests.Query;
 
-[Collection("EventStoreDatabaseSpec")]
+[Collection(nameof(EventStoreTestsDatabaseCollection))]
 public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
 {
     public EventStoreCurrentEventsByTagSpec(EventStoreContainer eventStoreContainer, ITestOutputHelper output) :

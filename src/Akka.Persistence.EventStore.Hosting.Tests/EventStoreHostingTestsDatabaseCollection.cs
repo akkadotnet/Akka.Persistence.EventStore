@@ -3,5 +3,5 @@ using Xunit;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
 
-[CollectionDefinition("EventStoreDatabaseSpec")]
+[CollectionDefinition(nameof(EventStoreHostingTestsDatabaseCollection))]
 public class EventStoreHostingTestsDatabaseCollection : ICollectionFixture<EventStoreContainer>;
