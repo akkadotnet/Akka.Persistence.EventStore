@@ -2,13 +2,17 @@
 using Akka.Persistence.EventStore.Benchmarks;
 using BenchmarkDotNet.Running;
 
-try
+var firstArg = args.FirstOrDefault();
+
+switch (firstArg)
 {
-    await EventStoreBenchmarkFixture.Initialize();
-    
-    BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args);
-}
-finally
-{
-    await EventStoreBenchmarkFixture.Dispose();
+    case "seed":
+        await EventStoreBenchmarkFixture.Initialize();
+        break;
+    case "cleanup":
+        await EventStoreBenchmarkFixture.Cleanup();
+        break;
+    default:
+        BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args);
+        break;
 }
