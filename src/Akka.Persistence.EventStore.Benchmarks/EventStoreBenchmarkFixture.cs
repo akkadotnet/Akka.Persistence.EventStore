@@ -100,6 +100,8 @@ public static class EventStoreBenchmarkFixture
         
         if (!string.IsNullOrEmpty(eventStoreContainerName))
             await EventStoreDockerContainer.Stop(eventStoreContainerName);
+
+        await File.WriteAllTextAsync("benchmark.conf", "");
     }
     
     public class CleanActorSystem(ActorSystem system, string containerName) : IAsyncDisposable
