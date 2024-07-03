@@ -1,7 +1,7 @@
 using Akka.Actor;
 using Akka.Event;
 
-namespace Akka.Persistence.EventStore.Benchmarks;
+namespace Akka.Persistence.EventStore.Benchmarks.BenchmarkActors;
 
 public class InitializeDbActor : ReceivePersistentActor
 {

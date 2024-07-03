@@ -3,13 +3,25 @@ using Akka.Persistence.EventStore.Query;
 using Akka.Persistence.Query;
 using Akka.Streams;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Loggers;
 using FluentAssertions;
 
 namespace Akka.Persistence.EventStore.Benchmarks;
 
-[Config(typeof(MicroBenchmarkConfig))]
-public class EventStoreTagBenchmark
+[Config(typeof(Config))]
+public class QueryByTagBenchmarks
 {
+    private class Config : ManualConfig
+    {
+        public Config()
+        {
+            AddDiagnoser(MemoryDiagnoser.Default);
+            AddLogger(ConsoleLogger.Default);
+        }
+    }
+    
     private IMaterializer? _materializer;
     private IReadJournal? _readJournal;
 
@@ -18,7 +30,7 @@ public class EventStoreTagBenchmark
     [GlobalSetup]
     public async Task Setup()
     {
-        _sys = await EventStoreBenchmarkFixture.CreateActorSystem("system");
+        _sys = await EventStoreBenchmarkFixture.CreateActorSystemFromSeededData("system");
         _materializer = _sys.Materializer();
         _readJournal = _sys.ReadJournalFor<EventStoreReadJournal>("akka.persistence.query.journal.eventstore");
     }

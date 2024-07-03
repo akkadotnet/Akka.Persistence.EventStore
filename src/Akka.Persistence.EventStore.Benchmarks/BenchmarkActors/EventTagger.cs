@@ -1,6 +1,6 @@
 using Akka.Persistence.Journal;
 
-namespace Akka.Persistence.EventStore.Benchmarks;
+namespace Akka.Persistence.EventStore.Benchmarks.BenchmarkActors;
 
 public sealed class EventTagger : IWriteEventAdapter
 {

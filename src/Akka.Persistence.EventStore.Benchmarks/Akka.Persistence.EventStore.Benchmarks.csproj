@@ -13,6 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Akka.Persistence.TestKit.Xunit2" />
       <PackageReference Include="BenchmarkDotNet" />
       <PackageReference Include="FluentAssertions" />
     </ItemGroup>

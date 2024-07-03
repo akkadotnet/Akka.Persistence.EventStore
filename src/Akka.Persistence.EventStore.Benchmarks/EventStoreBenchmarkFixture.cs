@@ -1,5 +1,6 @@
 using Akka.Actor;
 using Akka.Configuration;
+using Akka.Persistence.EventStore.Benchmarks.BenchmarkActors;
 using Akka.Persistence.EventStore.Tests;
 using FluentAssertions.Extensions;
 
@@ -7,9 +8,7 @@ namespace Akka.Persistence.EventStore.Benchmarks;
 
 public static class EventStoreBenchmarkFixture
 {
-    private static EventStoreContainer? _eventStoreContainer;
-
-    public static async Task<ActorSystem> CreateActorSystem(string name, Config? extraConfig = null)
+    public static async Task<ActorSystem> CreateActorSystemFromSeededData(string name, Config? extraConfig = null)
     {
         var config = ConfigurationFactory.ParseString(await File.ReadAllTextAsync("benchmark.conf"))
             .WithFallback(extraConfig ?? "")
@@ -18,23 +17,52 @@ public static class EventStoreBenchmarkFixture
 
         return ActorSystem.Create(name, config);
     }
+
+    public static async Task<CleanActorSystem> CreateActorSystemWithCleanDb(string name, Config? extraConfig = null)
+    {
+        var eventStoreContainer = new EventStoreContainer();
+        await eventStoreContainer.InitializeAsync();
+        
+        var config = ConfigurationFactory.ParseString($$"""
+                                                        akka.persistence.journal {
+                                                            plugin = akka.persistence.journal.eventstore
+                                                            eventstore {
+                                                                connection-string = "{{eventStoreContainer.ConnectionString}}"
+                                                            }
+                                                        }
+
+                                                        akka.persistence.query.journal.eventstore {
+                                                        	write-plugin = akka.persistence.journal.eventstore
+                                                        }
+                                                        """)
+            .WithFallback(extraConfig ?? "")
+            .WithFallback(Persistence.DefaultConfig())
+            .WithFallback(EventStorePersistence.DefaultConfiguration);
+
+        var actorSystem = ActorSystem.Create(name, config);
+
+        return new CleanActorSystem(actorSystem, eventStoreContainer.EventStoreContainerName ?? "");
+    }
     
     public static async Task Initialize()
     {
-        _eventStoreContainer = new EventStoreContainer();
-        await _eventStoreContainer.InitializeAsync();
+        var eventStoreContainer = new EventStoreContainer();
+        await eventStoreContainer.InitializeAsync();
         
         await File.WriteAllTextAsync(
             "benchmark.conf",
             $$"""
+              container-name = "{{eventStoreContainer.EventStoreContainerName}}"
+              
               akka.persistence.journal {
                   plugin = akka.persistence.journal.eventstore
                   eventstore {
-                      connection-string = "{{_eventStoreContainer.ConnectionString}}"
+                      connection-string = "{{eventStoreContainer.ConnectionString}}"
               
                       event-adapters {
                           event-tagger = "{{typeof(EventTagger).AssemblyQualifiedName}}"
                       }
+                      
                       event-adapter-bindings {
                           "System.Int32" = event-tagger
                       }
@@ -46,7 +74,7 @@ public static class EventStoreBenchmarkFixture
               }
               """);
         
-        var sys = await CreateActorSystem("Initializer", """
+        var sys = await CreateActorSystemFromSeededData("Initializer", """
                                                          akka.persistence.journal {
                                                              eventstore {
                                                                  auto-initialize = true
@@ -61,9 +89,26 @@ public static class EventStoreBenchmarkFixture
             20.Minutes());
     }
 
-    public static async Task Dispose()
+    public static async Task Cleanup()
     {
-        if (_eventStoreContainer is not null)
-            await _eventStoreContainer.DisposeAsync();
+        if (!File.Exists("benchmark.conf"))
+            return;
+
+        var config = ConfigurationFactory.ParseString(await File.ReadAllTextAsync("benchmark.conf"));
+        
+        var eventStoreContainerName = config.GetString("container-name");
+        
+        if (!string.IsNullOrEmpty(eventStoreContainerName))
+            await EventStoreDockerContainer.Stop(eventStoreContainerName);
+    }
+    
+    public class CleanActorSystem(ActorSystem system, string containerName) : IAsyncDisposable
+    {
+        public ActorSystem System { get; } = system;
+
+        public async ValueTask DisposeAsync()
+        {
+            await EventStoreDockerContainer.Stop(containerName);
+        }
     }
 }
