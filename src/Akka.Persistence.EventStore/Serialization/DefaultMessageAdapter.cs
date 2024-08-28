@@ -139,6 +139,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
     [PublicAPI]
     protected virtual async Task<IStoredEventMetadata?> GetEventMetadataFrom(ResolvedEvent evnt)
     {
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         if (evnt.Event == null)
             return null;
         
@@ -180,11 +181,15 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         string writerGuid { get; }
         // ReSharper disable once InconsistentNaming
         long? timestamp { get; }
+        // ReSharper disable once InconsistentNaming
+        string tenant { get; set; }
+        // ReSharper disable once InconsistentNaming
+        IImmutableSet<string> tags { get; set; }
     }
     
+    [PublicAPI]
     public class StoredEventMetadata : IStoredEventMetadata
     {
-        [PublicAPI]
         public StoredEventMetadata()
         {
             
@@ -209,18 +214,13 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
 
         public string persistenceId { get; set; } = null!;
         // ReSharper disable once InconsistentNaming
-        [PublicAPI]
         public DateTimeOffset occurredOn { get; set; }
         public string manifest { get; set; } = null!;
         public long sequenceNr { get; set; }
         public string writerGuid { get; set; } = null!;
         public string journalType { get; set; } = null!;
         public long? timestamp { get; set; }
-        // ReSharper disable once InconsistentNaming
-        [PublicAPI]
         public string tenant { get; set; } = null!;
-        // ReSharper disable once InconsistentNaming
-        [PublicAPI]
         public IImmutableSet<string> tags { get; set; } = ImmutableHashSet<string>.Empty;
         public IActorRef? sender { get; set; }
     }

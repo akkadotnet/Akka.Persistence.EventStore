@@ -171,7 +171,34 @@ akka.persistence {
     }
 }
 ```
+There is also an implementation using System.Text.Json in the plugin 
+that can be used. That can be configured like this:
+**Using Akka Hosting:**
+```csharp
+var host = new HostBuilder()
+    .ConfigureServices((context, services) => {
+        services.AddAkka("my-system-name", (builder, provider) =>
+        {
+            builder.WithEventStorePersistence(
+                connectionString: _myConnectionString,
+                adapter: "system-text-json")
+        });
+    })
+```
 
+**Using Hocon:**
+```
+akka.persistence {
+    journal {
+        plugin = "akka.persistence.journal.eventstore""
+        eventstore {
+            class = "Akka.Persistence.EventStore.Journal.EventStoreJournal, Akka.Persistence.EventStore"
+            connection-string = "esdb://admin:changeit@localhost:2113"
+            adapter = "system-text-json"
+        }
+    }
+}
+```
 # Projections
 
 To support the Read Journal the plugin takes advantage of the [projections](https://developers.eventstore.com/server/v23.10/projections.html#introduction) feature
