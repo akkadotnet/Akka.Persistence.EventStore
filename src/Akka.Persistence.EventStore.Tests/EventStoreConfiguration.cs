@@ -7,7 +7,7 @@ public static class EventStoreConfiguration
     public static Config Build(
         EventStoreContainer eventStoreContainer,
         string tenant,
-        Type? overrideSerializer = null)
+        string? overrideSerializer = null)
     {
         var config = ConfigurationFactory.ParseString($@"
 				akka.loglevel = INFO
@@ -40,7 +40,7 @@ public static class EventStoreConfiguration
         if (overrideSerializer != null)
         {
             config = config.WithFallback(
-                $"akka.persistence.journal.eventstore.adapter = \"{overrideSerializer.ToClrTypeName()}\"");
+                $"akka.persistence.journal.eventstore.adapter = \"{overrideSerializer}\"");
         }
 
         return config;

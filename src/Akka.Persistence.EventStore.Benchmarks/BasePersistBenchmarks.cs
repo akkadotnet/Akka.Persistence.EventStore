@@ -10,6 +10,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Loggers;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore.Benchmarks;
 
@@ -36,7 +37,9 @@ public abstract class BasePersistBenchmarks
     [GlobalSetup]
     public async Task Setup()
     {
-        _sys = await EventStoreBenchmarkFixture.CreateActorSystemWithCleanDb("system");
+        _sys = await EventStoreBenchmarkFixture.CreateActorSystemWithCleanDb(
+            "system",
+            overrideSerializer: AdapterType);
     }
     
     [GlobalCleanup]
@@ -72,8 +75,11 @@ public abstract class BasePersistBenchmarks
             : new SingleActorBenchmarkProxy(benchActor, testProbe, Configuration.Commands[^1]);
     }
 
-    [ParamsSource(nameof(GetNumberOfEventsConfiguration))]
+    [ParamsSource(nameof(GetNumberOfEventsConfiguration)), PublicAPI]
     public MessagesPerSecondConfiguration Configuration { get; set; } = null!;
+
+    [ParamsSource(nameof(GetAdapterTypes)), PublicAPI]
+    public string AdapterType { get; set; } = null!;
 
     public static IImmutableList<MessagesPerSecondConfiguration> GetNumberOfEventsConfiguration()
     {
@@ -85,6 +91,13 @@ public abstract class BasePersistBenchmarks
                 numberOfEvents / x,
                 x))
             .ToImmutableList();
+    }
+    
+    public static IImmutableList<string> GetAdapterTypes()
+    {
+        return ImmutableList.Create(
+            "default",
+            "system-text-json");
     }
     
     protected async Task RunBenchmark(string mode)

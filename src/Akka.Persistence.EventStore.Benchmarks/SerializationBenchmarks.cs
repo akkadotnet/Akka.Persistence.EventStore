@@ -6,6 +6,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Loggers;
 using EventStore.Client;
+using JetBrains.Annotations;
 
 namespace Akka.Persistence.EventStore.Benchmarks;
 
@@ -23,7 +24,7 @@ public class SerializationBenchmarks
 
     private readonly ComplexEvent _complexEvent = ComplexEvent.Create();
     
-    private DefaultMessageAdapter _adapter = null!;
+    private IMessageAdapter _adapter = null!;
     private EventStoreBenchmarkFixture.CleanActorSystem? _sys;
 
     private ResolvedEvent _serializedStringEvent;
@@ -32,11 +33,12 @@ public class SerializationBenchmarks
     [GlobalSetup]
     public async Task Setup()
     {
-        _sys = await EventStoreBenchmarkFixture.CreateActorSystemWithCleanDb("system");
+        _sys = await EventStoreBenchmarkFixture.CreateActorSystemWithCleanDb("system", overrideSerializer: AdapterType);
 
-        _adapter = new DefaultMessageAdapter(
-            _sys.System.Serialization,
-            new EventStoreJournalSettings(_sys.System.Settings.Config.GetConfig("akka.persistence.journal.eventstore")));
+        var settings =
+            new EventStoreJournalSettings(_sys.System.Settings.Config.GetConfig("akka.persistence.journal.eventstore"));
+
+        _adapter = settings.FindEventAdapter(_sys.System);
 
         var serializedStringEvent = await _adapter.Adapt(new Persistent("a"));
         var serializedComplexEvent = await _adapter.Adapt(new Persistent(_complexEvent));
@@ -82,6 +84,16 @@ public class SerializationBenchmarks
         if (_sys is not null)
             await _sys.DisposeAsync();
     }
+    
+    [ParamsSource(nameof(GetAdapterTypes)), PublicAPI]
+    public string AdapterType { get; set; } = null!;
+    
+    public static IImmutableList<string> GetAdapterTypes()
+    {
+        return ImmutableList.Create(
+            "default",
+            "system-text-json");
+    }
 
     [Benchmark]
     public async Task SerializeStringEvent()
@@ -107,6 +119,7 @@ public class SerializationBenchmarks
         await _adapter.AdaptEvent(_serializedComplexEvent);
     }
 
+    [PublicAPI]
     public record ComplexEvent(
         string Name,
         int Number,

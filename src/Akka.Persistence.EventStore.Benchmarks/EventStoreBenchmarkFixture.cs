@@ -18,7 +18,10 @@ public static class EventStoreBenchmarkFixture
         return ActorSystem.Create(name, config);
     }
 
-    public static async Task<CleanActorSystem> CreateActorSystemWithCleanDb(string name, Config? extraConfig = null)
+    public static async Task<CleanActorSystem> CreateActorSystemWithCleanDb(
+        string name,
+        Config? extraConfig = null,
+        string? overrideSerializer = null)
     {
         var eventStoreContainer = new EventStoreContainer();
         await eventStoreContainer.InitializeAsync();
@@ -38,6 +41,12 @@ public static class EventStoreBenchmarkFixture
             .WithFallback(extraConfig ?? "")
             .WithFallback(Persistence.DefaultConfig())
             .WithFallback(EventStorePersistence.DefaultConfiguration);
+        
+        if (!string.IsNullOrEmpty(overrideSerializer))
+        {
+            config = config.WithFallback(
+                $"akka.persistence.journal.eventstore.adapter = \"{overrideSerializer}\"");
+        }
 
         var actorSystem = ActorSystem.Create(name, config);
 
