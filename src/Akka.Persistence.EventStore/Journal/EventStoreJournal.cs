@@ -22,25 +22,26 @@ namespace Akka.Persistence.EventStore.Journal;
 public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 {
     private const string LastSequenceNumberMetaDataKey = "lastSeq";
-    
+
     private readonly EventStoreJournalSettings _settings;
     private readonly EventStoreTenantSettings _tenantSettings;
     private readonly ILoggingAdapter _log;
     private readonly CancellationTokenSource _pendingWriteCts;
-    
+
     private EventStoreClient _eventStoreClient = null!;
     private IMessageAdapter _adapter = null!;
     private ActorMaterializer _mat = null!;
     private EventStoreWriter<IPersistentRepresentation> _writeQueue = null!;
-    
+    private string? _writerUuid;
+
     private readonly Dictionary<string, Task> _writeInProgress = new();
-    
+
     // ReSharper disable once ConvertToPrimaryConstructor
     public EventStoreJournal(Config journalConfig)
     {
         _log = Context.GetLogger();
         _pendingWriteCts = new CancellationTokenSource();
-        
+
         _settings = new EventStoreJournalSettings(journalConfig);
         _tenantSettings = EventStoreTenantSettings.GetFrom(Context.System);
     }
@@ -53,9 +54,11 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             // We just want it to finish.
             await new NoThrowAwaiter(wip);
         }
-        
-        var filter = EventStoreEventStreamFilter.FromEnd(_settings.GetStreamName(persistenceId, _tenantSettings), fromSequenceNr);
-        
+
+        var filter =
+            EventStoreEventStreamFilter.FromEnd(_settings.GetStreamName(persistenceId, _tenantSettings),
+                fromSequenceNr);
+
         var lastMessage = await EventStoreSource
             .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter, _settings.Parallelism)
@@ -66,16 +69,19 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         if (lastMessage != null)
             return lastMessage.Data.SequenceNr;
 
-        var metadata = await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId, _tenantSettings));
+        var metadata =
+            await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId, _tenantSettings));
 
         var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
                              new Dictionary<string, object>();
 
-        var sequenceNumberFromMetaData = customMetaData.TryGetValue(LastSequenceNumberMetaDataKey, out var lastSeqObj) && lastSeqObj is JsonElement lastSeqElem &&
-               lastSeqElem.TryGetInt64(out var lastSeq)
-            ? (long?)lastSeq
-            : null;
-        
+        var sequenceNumberFromMetaData =
+            customMetaData.TryGetValue(LastSequenceNumberMetaDataKey, out var lastSeqObj) &&
+            lastSeqObj is JsonElement lastSeqElem &&
+            lastSeqElem.TryGetInt64(out var lastSeq)
+                ? (long?)lastSeq
+                : null;
+
         return sequenceNumberFromMetaData > fromSequenceNr
             ? sequenceNumberFromMetaData.Value
             : 0;
@@ -91,10 +97,10 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     {
         var filter = EventStoreEventStreamFilter.FromPositionInclusive(
             _settings.GetStreamName(persistenceId, _tenantSettings),
-            fromSequenceNr, 
+            fromSequenceNr,
             fromSequenceNr,
             toSequenceNr);
-        
+
         await EventStoreSource
             .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter, _settings.Parallelism)
@@ -110,7 +116,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         var persistenceId = messagesList.Head().PersistenceId;
 
         var lowSequenceId = messagesList.Min(x => x.LowestSequenceNr) - 2;
-        
+
         var expectedVersion = lowSequenceId < 0
             ? StreamRevision.None
             : StreamRevision.FromInt64(lowSequenceId);
@@ -122,15 +128,25 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                 _settings.GetStreamName(persistenceId, _tenantSettings),
                 messagesList
                     .SelectMany(y => (IImmutableList<IPersistentRepresentation>)y.Payload)
-                    .Select(y => y.Timestamp > 0 ? y : y.WithTimestamp(currentTimestamp))
+                    .Select(y =>
+                    {
+                        var persistent = y.Update(
+                            y.SequenceNr,
+                            y.PersistenceId,
+                            y.IsDeleted,
+                            y.Sender,
+                            _writerUuid ?? "");
+
+                        return persistent.Timestamp > 0 ? persistent : persistent.WithTimestamp(currentTimestamp);
+                    })
                     .OrderBy(y => y.SequenceNr)
                     .ToImmutableList(),
                 expectedVersion)
-            .ContinueWith(result =>
+            .ContinueWith(IImmutableList<Exception?> (result) =>
                 {
                     var exception = result.Exception != null ? TryUnwrapException(result.Exception) : null;
 
-                    return (IImmutableList<Exception?>)Enumerable
+                    return Enumerable
                         .Range(0, messagesList.Count)
                         .Select(_ => exception)
                         .ToImmutableList();
@@ -138,10 +154,10 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                 cancellationToken: _pendingWriteCts.Token,
                 continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
                 scheduler: TaskScheduler.Default);
-        
+
         _writeInProgress[persistenceId] = future;
         var self = Self;
-        
+
         // When we are done, we want to send a 'WriteFinished' so that
         // Sequence Number reads won't block/await/etc.
         future.ContinueWith(
@@ -149,7 +165,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             cancellationToken: _pendingWriteCts.Token,
             continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
             scheduler: TaskScheduler.Default);
-        
+
         // But we still want to return the future from `AsyncWriteMessages`
         return future;
     }
@@ -159,7 +175,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         var streamName = _settings.GetStreamName(persistenceId, _tenantSettings);
 
         var filter = EventStoreEventStreamFilter.FromEnd(streamName, maxSequenceNumber: toSequenceNr);
-        
+
         var lastMessage = await EventStoreSource
             .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter, _settings.Parallelism)
@@ -172,14 +188,15 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             var metadata = await _eventStoreClient.GetStreamMetadataAsync(streamName);
 
             var truncatePosition = lastMessage.Position + 1;
-            
+
             if (metadata.Metadata.TruncateBefore != null && metadata.Metadata.TruncateBefore >= truncatePosition)
                 return;
-            
+
             var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
                                  new Dictionary<string, object>();
 
-            customMetaData[LastSequenceNumberMetaDataKey] = JsonSerializer.SerializeToElement(lastMessage.Data.SequenceNr);
+            customMetaData[LastSequenceNumberMetaDataKey] =
+                JsonSerializer.SerializeToElement(lastMessage.Data.SequenceNr);
 
             await _eventStoreClient
                 .SetStreamMetadataAsync(
@@ -196,7 +213,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     }
 
     public IStash Stash { get; set; } = null!;
-    
+
     protected override void PreStart()
     {
         base.PreStart();
@@ -208,35 +225,36 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         // initialized.
         BecomeStacked(Initializing);
     }
-    
+
     protected override void PostStop()
     {
         base.PostStop();
         _pendingWriteCts.Cancel();
         _pendingWriteCts.Dispose();
     }
-    
+
     public override void AroundPreRestart(Exception cause, object? message)
     {
         _log.Error(cause, $"EventStore Journal Error on {message?.GetType().ToString() ?? "null"}");
         base.AroundPreRestart(cause, message);
     }
-    
+
     protected override bool ReceivePluginInternal(object message)
     {
         switch (message)
         {
             case WriteFinished wf:
-                if (_writeInProgress.TryGetValue(wf.PersistenceId, out var latestPending) & (latestPending == wf.Future))
+                if (_writeInProgress.TryGetValue(wf.PersistenceId, out var latestPending) &
+                    (latestPending == wf.Future))
                     _writeInProgress.Remove(wf.PersistenceId);
-                
+
                 return true;
 
             default:
                 return false;
         }
     }
-    
+
     private bool Initializing(object message)
     {
         switch (message)
@@ -256,11 +274,13 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                 return true;
         }
     }
-    
+
     private async Task<Status> Initialize()
     {
         try
         {
+            _writerUuid = Guid.NewGuid().ToString("N");
+
             var connectionString = _settings.ConnectionString;
 
             var eventStoreClientSettings = EventStoreClientSettings.Create(connectionString);
@@ -268,14 +288,14 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             _eventStoreClient = new EventStoreClient(eventStoreClientSettings);
 
             _adapter = _settings.FindEventAdapter(Context.System);
-            
+
             _mat = Materializer.CreateSystemMaterializer(
                 context: (ExtendedActorSystem)Context.System,
                 settings: ActorMaterializerSettings
                     .Create(Context.System)
                     .WithDispatcher(_settings.MaterializerDispatcher),
                 namePrefix: "esWriteJournal");
-            
+
             _writeQueue = EventStoreWriter<IPersistentRepresentation>.From(
                 _eventStoreClient,
                 evnt => _adapter.Adapt(evnt),
