@@ -1,3 +1,9 @@
+#### 1.5.30 October 14, 2024 ####
+Upgrade Akka to version 1.5.30
+Upgrade EventStore to version 23.3.5
+[Added a message adapter for System.Text.Json](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/54)
+[Added support for a writer uuid](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/55)
+
 #### 1.5.25 June 28 2024 ####
 Upgrade Akka to version 1.5.26
 [Fix for an issue](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/45) where tagged query would fail if some matching
