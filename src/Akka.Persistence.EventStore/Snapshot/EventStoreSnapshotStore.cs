@@ -67,7 +67,7 @@ public class EventStoreSnapshotStore : SnapshotStore
     {
         return DeleteAsync(
             metadata.PersistenceId,
-            new SnapshotSelectionCriteria(metadata.SequenceNr));
+            new SnapshotSelectionCriteria(metadata.SequenceNr, metadata.Timestamp));
     }
 
     protected override async Task DeleteAsync(string persistenceId, SnapshotSelectionCriteria criteria)
