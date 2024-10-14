@@ -1,18 +1,18 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AkkaVersion>1.5.26</AkkaVersion>
-    <EventStoreVersion>23.3.3</EventStoreVersion>
-    <XunitVersion>2.8.1</XunitVersion>
-    <TestSdkVersion>17.10.0</TestSdkVersion>
+    <AkkaVersion>1.5.30</AkkaVersion>
+    <EventStoreVersion>23.3.5</EventStoreVersion>
+    <XunitVersion>2.9.2</XunitVersion>
+    <TestSdkVersion>17.11.1</TestSdkVersion>
   </PropertyGroup>
   <!-- Akka.NET Package Versions -->
   <ItemGroup>
-    <PackageVersion Include="Akka.Persistence.Hosting" Version="1.5.25" />
+    <PackageVersion Include="Akka.Persistence.Hosting" Version="1.5.30" />
     <PackageVersion Include="Akka" Version="$(AkkaVersion)" />
     <PackageVersion Include="Akka.Persistence" Version="$(AkkaVersion)" />
     <PackageVersion Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
-    <PackageVersion Include="Akka.Persistence.TestKit.Xunit2" Version="1.5.26" />
+    <PackageVersion Include="Akka.Persistence.TestKit.Xunit2" Version="1.5.30" />
   </ItemGroup>
   <!-- EventStore Package Versions -->
   <ItemGroup>
@@ -23,22 +23,22 @@
   <!-- Testing Utilities -->
   <ItemGroup>
     <PackageVersion Include="Akka.Persistence.TCK" Version="$(AkkaVersion)" />
-    <PackageVersion Include="Akka.Hosting.TestKit" Version="1.5.25" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageVersion Include="Akka.Hosting.TestKit" Version="1.5.30" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
     <PackageVersion Include="xunit" Version="$(XunitVersion)" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="$(XunitVersion)">
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
-    <PackageVersion Include="FluentAssertions" Version="6.12.0" />
+    <PackageVersion Include="FluentAssertions" Version="6.12.1" />
     <PackageVersion Include="Docker.DotNet" Version="3.125.15" />
-    <PackageVersion Include="BenchmarkDotNet" Version="0.13.12" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <PackageVersion Include="JetBrains.dotMemoryUnit" Version="3.2.20220510" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
-    <PackageVersion Include="JetBrains.Annotations" Version="2023.3.0" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2024.2.0" />
     <PackageVersion Include="NuGet.Frameworks" Version="6.9.1" />
   </ItemGroup>
 </Project>
