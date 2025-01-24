@@ -1,18 +1,19 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AkkaVersion>1.5.30</AkkaVersion>
+    <AkkaVersion>1.5.37</AkkaVersion>
+    <AkkaHostingVersion>1.5.37</AkkaHostingVersion>
     <EventStoreVersion>23.3.5</EventStoreVersion>
     <XunitVersion>2.9.2</XunitVersion>
     <TestSdkVersion>17.11.1</TestSdkVersion>
   </PropertyGroup>
   <!-- Akka.NET Package Versions -->
   <ItemGroup>
-    <PackageVersion Include="Akka.Persistence.Hosting" Version="1.5.30" />
+    <PackageVersion Include="Akka.Persistence.Hosting" Version="$(AkkaHostingVersion)" />
     <PackageVersion Include="Akka" Version="$(AkkaVersion)" />
     <PackageVersion Include="Akka.Persistence" Version="$(AkkaVersion)" />
     <PackageVersion Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
-    <PackageVersion Include="Akka.Persistence.TestKit.Xunit2" Version="1.5.30" />
+    <PackageVersion Include="Akka.Persistence.TestKit.Xunit2" Version="$(AkkaVersion)" />
   </ItemGroup>
   <!-- EventStore Package Versions -->
   <ItemGroup>
@@ -23,7 +24,7 @@
   <!-- Testing Utilities -->
   <ItemGroup>
     <PackageVersion Include="Akka.Persistence.TCK" Version="$(AkkaVersion)" />
-    <PackageVersion Include="Akka.Hosting.TestKit" Version="1.5.30" />
+    <PackageVersion Include="Akka.Hosting.TestKit" Version="$(AkkaVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
     <PackageVersion Include="xunit" Version="$(XunitVersion)" />
