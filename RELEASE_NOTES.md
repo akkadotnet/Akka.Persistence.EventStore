@@ -1,3 +1,7 @@
+#### 1.5.30 October 14, 2024 ####
+Bumped Akka to version 1.5.40
+Upgrade EventStore to version 23.3.8
+
 #### 1.5.37 January 24, 2025 ####
 
 * [Bump Akka.NET to 1.5.37](https://github.com/akkadotnet/akka.net/releases/tag/1.5.37)
