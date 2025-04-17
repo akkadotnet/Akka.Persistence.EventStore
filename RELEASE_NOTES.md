@@ -1,4 +1,4 @@
-#### 1.5.30 October 14, 2024 ####
+#### 1.5.40 April 17, 2025 ####
 Bumped Akka to version 1.5.40
 Upgrade EventStore to version 23.3.8
 
