@@ -1,11 +1,11 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AkkaVersion>1.5.37</AkkaVersion>
-    <AkkaHostingVersion>1.5.37</AkkaHostingVersion>
-    <EventStoreVersion>23.3.5</EventStoreVersion>
-    <XunitVersion>2.9.2</XunitVersion>
-    <TestSdkVersion>17.11.1</TestSdkVersion>
+    <AkkaVersion>1.5.40</AkkaVersion>
+    <AkkaHostingVersion>1.5.40</AkkaHostingVersion>
+    <EventStoreVersion>23.3.8</EventStoreVersion>
+    <XunitVersion>2.9.3</XunitVersion>
+    <TestSdkVersion>17.13.0</TestSdkVersion>
   </PropertyGroup>
   <!-- Akka.NET Package Versions -->
   <ItemGroup>
@@ -28,18 +28,18 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
     <PackageVersion Include="xunit" Version="$(XunitVersion)" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2">
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
-    <PackageVersion Include="FluentAssertions" Version="6.12.1" />
+    <PackageVersion Include="FluentAssertions" Version="8.2.0" />
     <PackageVersion Include="Docker.DotNet" Version="3.125.15" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <PackageVersion Include="JetBrains.dotMemoryUnit" Version="3.2.20220510" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
-    <PackageVersion Include="JetBrains.Annotations" Version="2024.2.0" />
-    <PackageVersion Include="NuGet.Frameworks" Version="6.9.1" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2024.3.0" />
+    <PackageVersion Include="NuGet.Frameworks" Version="6.13.2" />
   </ItemGroup>
 </Project>
