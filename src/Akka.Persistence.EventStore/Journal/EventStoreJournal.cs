@@ -114,12 +114,17 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     {
         var messagesList = atomicWrites.ToImmutableList();
         var persistenceId = messagesList.Head().PersistenceId;
+        
+        StreamRevision? expectedVersion = null;
 
-        var lowSequenceId = messagesList.Min(x => x.LowestSequenceNr) - 2;
+        if (!_settings.SkipStreamRevisionCheck)
+        {
+            var lowSequenceId = messagesList.Min(x => x.LowestSequenceNr) - 2;
 
-        var expectedVersion = lowSequenceId < 0
-            ? StreamRevision.None
-            : StreamRevision.FromInt64(lowSequenceId);
+            expectedVersion = lowSequenceId < 0
+                ? StreamRevision.None
+                : StreamRevision.FromInt64(lowSequenceId);
+        }
 
         var currentTimestamp = DateTime.Now.Ticks;
 

@@ -40,6 +40,7 @@ akka.persistence.journal.eventstore {
         actualPluginConfig.GetString("materializer-dispatcher").Should()
             .Be(defaultConfig.GetString("materializer-dispatcher"));
         actualConfig.GetString("akka.persistence.query.plugin").Should().Be(EventStorePersistence.QueryConfigPath);
+        actualPluginConfig.GetBoolean("skip-stream-revision-check").Should().Be(defaultConfig.GetBoolean("skip-stream-revision-check"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
@@ -58,7 +59,8 @@ akka.persistence.journal.eventstore {
             Tenant = "tenant",
             MaterializerDispatcher = "custom-dispatcher",
             Parallelism = 10,
-            BufferSize = 1000
+            BufferSize = 1000,
+            SkipStreamRevisionCheck = true
         };
 
         var fullConfig = opt.ToConfig();
@@ -78,5 +80,6 @@ akka.persistence.journal.eventstore {
         config.Parallelism.Should().Be(10);
         config.BufferSize.Should().Be(1000);
         config.MaterializerDispatcher.Should().Be("custom-dispatcher");
+        config.SkipStreamRevisionCheck.Should().Be(true);
     }
 }

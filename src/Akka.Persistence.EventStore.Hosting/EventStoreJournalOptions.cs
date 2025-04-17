@@ -27,6 +27,7 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
     public string? MaterializerDispatcher { get; init; }
     public int? Parallelism { get; init; }
     public int? BufferSize { get; init; }
+    public bool SkipStreamRevisionCheck { get; init; }
     public override string Identifier { get; set; } = identifier;
     public Config DefaultQueryConfig => DefaultQuery.MoveTo(QueryPluginId);
     protected override Config InternalDefaultConfig => Default;
@@ -66,6 +67,8 @@ public sealed class EventStoreJournalOptions(bool isDefault, string identifier =
         
         if (BufferSize.HasValue)
             sb.AppendLine($"buffer-size = {BufferSize.ToHocon()}");
+        
+        sb.AppendLine($"skip-stream-revision-check = {SkipStreamRevisionCheck.ToHocon()}");
 
         base.Build(sb);
         

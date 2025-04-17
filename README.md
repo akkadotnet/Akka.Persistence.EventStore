@@ -66,6 +66,7 @@ akka.persistence {
 - `tagged-stream-name-pattern` - A pattern used when creating a stream name for a tags-stream. The name `[[TAG]]` will be replaced by the actual tag used.
 - `persistence-ids-stream-name` - A name for the stream that stores all persistence id's (to support read journal).
 - `persisted-events-stream-name` - A name for the stream that stores all events (to support read journal).
+- `skip-stream-revision-check` - Skip the check for stream revision when writing events. This can be used if there are other processes then Akka writing to the same stream.
 
 ## Snapshot store
 - `connection-string` - Connection string, as described here: https://developers.eventstore.com/clients/grpc/#connection-string.
