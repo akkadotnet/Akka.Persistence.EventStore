@@ -38,7 +38,8 @@ internal class EventStoreWriter<TSource>
                                 x.StreamName,
                                 x.ExpectedRevision.Value,
                                 events,
-                                configureOperationOptions: options => options.ThrowOnAppendFailure = true);
+                                configureOperationOptions: options => options.ThrowOnAppendFailure = true,
+                                cancellationToken: x.CancellationToken);
                         }
                         else
                         {
@@ -47,7 +48,8 @@ internal class EventStoreWriter<TSource>
                                     x.StreamName,
                                     StreamState.Any,
                                     events,
-                                    configureOperationOptions: options => options.ThrowOnAppendFailure = true);
+                                    configureOperationOptions: options => options.ThrowOnAppendFailure = true,
+                                    cancellationToken: x.CancellationToken);
                         }
 
                         x.Ack.TrySetResult(NotUsed.Instance);
@@ -68,11 +70,12 @@ internal class EventStoreWriter<TSource>
     public async Task Write(
         string streamName,
         IImmutableList<TSource> events,
+        CancellationToken cancellationToken,
         StreamRevision? expectedRevision = null)
     {
         var promise = new TaskCompletionSource<NotUsed>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var result = await _writeQueue.OfferAsync(new QueueItem(streamName, events, promise, expectedRevision));
+        var result = await _writeQueue.OfferAsync(new QueueItem(streamName, events, promise, cancellationToken, expectedRevision));
 
         switch (result)
         {
@@ -103,5 +106,6 @@ internal class EventStoreWriter<TSource>
         string StreamName,
         IImmutableList<TSource> Events,
         TaskCompletionSource<NotUsed> Ack,
+        CancellationToken CancellationToken,
         StreamRevision? ExpectedRevision = null);
 }

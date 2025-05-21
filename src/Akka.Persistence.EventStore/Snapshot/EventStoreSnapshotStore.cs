@@ -49,28 +49,31 @@ public class EventStoreSnapshotStore : SnapshotStore
 
     protected override async Task<SelectedSnapshot?> LoadAsync(
         string persistenceId,
-        SnapshotSelectionCriteria criteria)
+        SnapshotSelectionCriteria criteria,
+        CancellationToken cancellationToken)
     {
-        var result = await FindSnapshot(_settings.GetStreamName(persistenceId, _tenantSettings), criteria);
+        var result = await FindSnapshot(_settings.GetStreamName(persistenceId, _tenantSettings), criteria, cancellationToken);
 
         return result?.Data;
     }
 
-    protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot)
+    protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot, CancellationToken cancellationToken)
     {
         await _writeQueue.Write(
             _settings.GetStreamName(metadata.PersistenceId, _tenantSettings),
-            ImmutableList.Create(new SelectedSnapshot(metadata, snapshot)));
+            ImmutableList.Create(new SelectedSnapshot(metadata, snapshot)),
+            cancellationToken);
     }
 
-    protected override Task DeleteAsync(SnapshotMetadata metadata)
+    protected override Task DeleteAsync(SnapshotMetadata metadata, CancellationToken cancellationToken)
     {
         return DeleteAsync(
             metadata.PersistenceId,
-            new SnapshotSelectionCriteria(metadata.SequenceNr, metadata.Timestamp));
+            new SnapshotSelectionCriteria(metadata.SequenceNr, metadata.Timestamp),
+            cancellationToken);
     }
 
-    protected override async Task DeleteAsync(string persistenceId, SnapshotSelectionCriteria criteria)
+    protected override async Task DeleteAsync(string persistenceId, SnapshotSelectionCriteria criteria, CancellationToken cancellationToken)
     {
         if (criteria.Equals(SnapshotSelectionCriteria.None))
             return;
@@ -79,12 +82,13 @@ public class EventStoreSnapshotStore : SnapshotStore
 
         var snapshotToDelete = await FindSnapshot(
             streamName,
-            criteria);
+            criteria,
+            cancellationToken);
         
         if (snapshotToDelete == null)
             return;
 
-        var currentMetaData = await _eventStoreClient.GetStreamMetadataAsync(streamName);
+        var currentMetaData = await _eventStoreClient.GetStreamMetadataAsync(streamName, cancellationToken: cancellationToken);
 
         await _eventStoreClient.SetStreamMetadataAsync(
             streamName,
@@ -95,12 +99,14 @@ public class EventStoreSnapshotStore : SnapshotStore
                 snapshotToDelete.Position + 1,
                 currentMetaData.Metadata.CacheControl,
                 currentMetaData.Metadata.Acl,
-                currentMetaData.Metadata.CustomMetadata));
+                currentMetaData.Metadata.CustomMetadata),
+            cancellationToken: cancellationToken);
     }
 
     private async Task<ReplayCompletion<SelectedSnapshot>?> FindSnapshot(
         string streamName,
-        SnapshotSelectionCriteria criteria)
+        SnapshotSelectionCriteria criteria,
+        CancellationToken cancellationToken)
     {
         if (criteria.Equals(SnapshotSelectionCriteria.None))
             return null;
@@ -111,11 +117,16 @@ public class EventStoreSnapshotStore : SnapshotStore
             Direction.Backwards,
             criteria);
 
-        return await EventStoreSource
+        var (killSwitch, task) = EventStoreSource
             .FromStream(_eventStoreClient, filter)
             .DeSerializeSnapshotWith(_messageAdapter, _settings.Parallelism)
             .Filter(filter)
             .Take(1)
-            .RunWith(new FirstOrDefault<ReplayCompletion<SelectedSnapshot>>(), _mat);
+            .ViaMaterialized(KillSwitches.Single<ReplayCompletion<SelectedSnapshot>>(), Keep.Right)
+            .ToMaterialized(new FirstOrDefault<ReplayCompletion<SelectedSnapshot>>(), Keep.Both)
+            .Run(_mat);
+        
+        cancellationToken.Register(() => killSwitch.Abort(new TimeoutException()));
+        return await task;
     }
 }
