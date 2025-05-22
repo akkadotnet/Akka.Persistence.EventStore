@@ -46,7 +46,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         _tenantSettings = EventStoreTenantSettings.GetFrom(Context.System);
     }
 
-    public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr)
+    public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr, CancellationToken cancellationToken)
     {
         if (_writeInProgress.TryGetValue(persistenceId, out var wip))
         {
@@ -59,18 +59,23 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             EventStoreEventStreamFilter.FromEnd(_settings.GetStreamName(persistenceId, _tenantSettings),
                 fromSequenceNr);
 
-        var lastMessage = await EventStoreSource
+        var (killSwitch, task) = EventStoreSource
             .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter, _settings.Parallelism)
             .Filter(filter)
             .Take(1)
-            .RunWith(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), _mat);
+            .ViaMaterialized(KillSwitches.Single<ReplayCompletion<IPersistentRepresentation>>(), Keep.Right)
+            .ToMaterialized(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), Keep.Both)
+            .Run(_mat);
+        
+        cancellationToken.Register(() => killSwitch.Abort(new TimeoutException()));
+        var lastMessage = await task;
 
         if (lastMessage != null)
             return lastMessage.Data.SequenceNr;
 
         var metadata =
-            await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId, _tenantSettings));
+            await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId, _tenantSettings), cancellationToken: cancellationToken);
 
         var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
                              new Dictionary<string, object>();
@@ -110,7 +115,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     }
 
     protected override Task<IImmutableList<Exception?>> WriteMessagesAsync(
-        IEnumerable<AtomicWrite> atomicWrites)
+        IEnumerable<AtomicWrite> atomicWrites, CancellationToken cancellationToken)
     {
         var messagesList = atomicWrites.ToImmutableList();
         var persistenceId = messagesList.Head().PersistenceId;
@@ -123,6 +128,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
         var currentTimestamp = DateTime.Now.Ticks;
 
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _pendingWriteCts.Token);
         var future = _writeQueue
             .Write(
                 _settings.GetStreamName(persistenceId, _tenantSettings),
@@ -141,6 +147,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                     })
                     .OrderBy(y => y.SequenceNr)
                     .ToImmutableList(),
+                cts.Token,
                 expectedVersion)
             .ContinueWith(IImmutableList<Exception?> (result) =>
                 {
@@ -151,7 +158,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                         .Select(_ => exception)
                         .ToImmutableList();
                 },
-                cancellationToken: _pendingWriteCts.Token,
+                cancellationToken: cts.Token,
                 continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
                 scheduler: TaskScheduler.Default);
 
@@ -162,7 +169,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         // Sequence Number reads won't block/await/etc.
         future.ContinueWith(
             continuationAction: p => self.Tell(new WriteFinished(persistenceId, p)),
-            cancellationToken: _pendingWriteCts.Token,
+            cancellationToken: cts.Token,
             continuationOptions: TaskContinuationOptions.ExecuteSynchronously,
             scheduler: TaskScheduler.Default);
 
@@ -170,22 +177,27 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         return future;
     }
 
-    protected override async Task DeleteMessagesToAsync(string persistenceId, long toSequenceNr)
+    protected override async Task DeleteMessagesToAsync(string persistenceId, long toSequenceNr, CancellationToken cancellationToken)
     {
         var streamName = _settings.GetStreamName(persistenceId, _tenantSettings);
 
         var filter = EventStoreEventStreamFilter.FromEnd(streamName, maxSequenceNumber: toSequenceNr);
 
-        var lastMessage = await EventStoreSource
+        var (killSwitch, task) = EventStoreSource
             .FromStream(_eventStoreClient, filter)
             .DeSerializeEventWith(_adapter, _settings.Parallelism)
             .Filter(filter)
             .Take(1)
-            .RunWith(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), _mat);
+            .ViaMaterialized(KillSwitches.Single<ReplayCompletion<IPersistentRepresentation>>(), Keep.Right)
+            .ToMaterialized(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), Keep.Both)
+            .Run(_mat);
+
+        cancellationToken.Register(() => killSwitch.Abort(new TimeoutException()));
+        var lastMessage = await task;
 
         if (lastMessage != null)
         {
-            var metadata = await _eventStoreClient.GetStreamMetadataAsync(streamName);
+            var metadata = await _eventStoreClient.GetStreamMetadataAsync(streamName, cancellationToken: cancellationToken);
 
             var truncatePosition = lastMessage.Position + 1;
 
@@ -208,7 +220,8 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                         truncatePosition,
                         metadata.Metadata.CacheControl,
                         metadata.Metadata.Acl,
-                        JsonSerializer.SerializeToDocument(customMetaData)));
+                        JsonSerializer.SerializeToDocument(customMetaData)), 
+                    cancellationToken: cancellationToken);
         }
     }
 
