@@ -1,3 +1,7 @@
+#### 1.5.42 May 22nd, 2025 ####
+* [Bumped Akka to version 1.5.42](https://github.com/akkadotnet/akka.net/releases/tag/1.5.42)
+* [Use the new Akka.Persistence cancellation token API](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/64)
+
 #### 1.5.40 April 17, 2025 ####
 Bumped Akka to version 1.5.40
 Upgrade EventStore to version 23.3.8
