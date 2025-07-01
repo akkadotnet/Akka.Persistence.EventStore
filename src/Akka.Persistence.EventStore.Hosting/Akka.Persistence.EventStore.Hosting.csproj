@@ -19,6 +19,9 @@
 
     <ItemGroup>
         <PackageReference Include="Akka.Persistence.Hosting"/>
+        <PackageReference Include="JetBrains.Annotations">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
     </ItemGroup>
 
 </Project>

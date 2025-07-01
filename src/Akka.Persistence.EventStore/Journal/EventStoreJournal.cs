@@ -46,7 +46,10 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         _tenantSettings = EventStoreTenantSettings.GetFrom(Context.System);
     }
 
-    public override async Task<long> ReadHighestSequenceNrAsync(string persistenceId, long fromSequenceNr, CancellationToken cancellationToken)
+    public override async Task<long> ReadHighestSequenceNrAsync(
+        string persistenceId,
+        long fromSequenceNr,
+        CancellationToken cancellationToken)
     {
         if (_writeInProgress.TryGetValue(persistenceId, out var wip))
         {
@@ -115,7 +118,8 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     }
 
     protected override Task<IImmutableList<Exception?>> WriteMessagesAsync(
-        IEnumerable<AtomicWrite> atomicWrites, CancellationToken cancellationToken)
+        IEnumerable<AtomicWrite> atomicWrites, 
+        CancellationToken cancellationToken)
     {
         var messagesList = atomicWrites.ToImmutableList();
         var persistenceId = messagesList.Head().PersistenceId;
@@ -177,7 +181,10 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
         return future;
     }
 
-    protected override async Task DeleteMessagesToAsync(string persistenceId, long toSequenceNr, CancellationToken cancellationToken)
+    protected override async Task DeleteMessagesToAsync(
+        string persistenceId,
+        long toSequenceNr,
+        CancellationToken cancellationToken)
     {
         var streamName = _settings.GetStreamName(persistenceId, _tenantSettings);
 
