@@ -15,7 +15,7 @@ public class EventStoreJournalSystemTextJsonAdapterSpec : JournalSpec
         : base(EventStoreConfiguration.Build(
             eventStoreContainer,
             "system-text-json-journal-spec",
-            "system-text-json"), nameof(EventStoreJournalSystemTextJsonAdapterSpec))
+            "akka.persistence.journal.eventstore.adapter = \"system-text-json\""), nameof(EventStoreJournalSystemTextJsonAdapterSpec))
     {
         Initialize();
     }

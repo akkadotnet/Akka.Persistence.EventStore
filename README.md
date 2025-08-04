@@ -60,9 +60,12 @@ akka.persistence {
 - `connection-string` - Connection string, as described here: https://developers.eventstore.com/clients/grpc/#connection-string.
 - `materializer-dispatcher` - Dispatcher used to drive journal actor
 - `adapter ` - Controls how the event data and metadata is stored and retrieved. See Adapter section below for more information.
-- `auto-initialize` - Whether or not the plugin should create projections to support read journal on startup. See Projections section below for more information.
+- `auto-initialize` - Whether the plugin should create projections to support read journal on startup. See Projections section below for more information.
 - `prefix` - A optional prefix that will be added to streams.
 - `tenant` - A optional tenant that should be used to support multi-tenant environments.
+- `parallelism` - The maximum number of parallel writes to the database.
+- `buffer-size` - The size of the buffer used to batch writes to the database.
+- `disable-revision-check` - A option to disable the revision check on the database. This is useful if you need to write to the stream from some other place that isn't akka.net. This should be used with caution as it can lead to data corruption if not handled correctly.
 - `tagged-stream-name-pattern` - A pattern used when creating a stream name for a tags-stream. The name `[[TAG]]` will be replaced by the actual tag used.
 - `persistence-ids-stream-name` - A name for the stream that stores all persistence id's (to support read journal).
 - `persisted-events-stream-name` - A name for the stream that stores all events (to support read journal).
@@ -72,6 +75,9 @@ akka.persistence {
 - `materializer-dispatcher` - Dispatcher used to drive journal actor
 - `adapter ` - Controls how the event data and metadata is stored and retrieved. See Adapter section below for more information.- `prefix` - A optional prefix that will be added to streams.
 - `tenant` - A optional tenant that should be used to support multi-tenant environments.
+- `parallelism` - The maximum number of parallel writes to the database.
+- `buffer-size` - The size of the buffer used to batch writes to the database.
+- `prefix` - Prefix used to create stream name alongside with PersistenceId for snapshot
 
 ## Query journal
 - `write-plugin` - Absolute path to the write journal plugin configuration entry that this query journal will connect to.
