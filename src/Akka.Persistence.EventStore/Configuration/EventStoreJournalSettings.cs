@@ -27,6 +27,7 @@ public class EventStoreJournalSettings : ISettingsWithAdapter
         Tenant = config.GetString("tenant");
         Parallelism = config.GetInt("parallelism", 6);
         BufferSize = config.GetInt("buffer-size", 5000);
+        DisableRevisionCheck = config.GetBoolean("disable-revision-check");
     }
 
     public string ConnectionString { get; }
@@ -41,6 +42,7 @@ public class EventStoreJournalSettings : ISettingsWithAdapter
     public string PersistedEventsStreamName { get; }
     public int Parallelism { get; }
     public int BufferSize { get; }
+    public bool DisableRevisionCheck { get; }
 
     public string GetStreamName(string persistenceId, EventStoreTenantSettings tenantSettings)
     {

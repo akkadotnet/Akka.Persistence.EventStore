@@ -57,7 +57,10 @@ public class EventStoreSnapshotStore : SnapshotStore
         return result?.Data;
     }
 
-    protected override async Task SaveAsync(SnapshotMetadata metadata, object snapshot, CancellationToken cancellationToken)
+    protected override async Task SaveAsync(
+        SnapshotMetadata metadata,
+        object snapshot,
+        CancellationToken cancellationToken)
     {
         await _writeQueue.Write(
             _settings.GetStreamName(metadata.PersistenceId, _tenantSettings),
@@ -73,7 +76,10 @@ public class EventStoreSnapshotStore : SnapshotStore
             cancellationToken);
     }
 
-    protected override async Task DeleteAsync(string persistenceId, SnapshotSelectionCriteria criteria, CancellationToken cancellationToken)
+    protected override async Task DeleteAsync(
+        string persistenceId,
+        SnapshotSelectionCriteria criteria,
+        CancellationToken cancellationToken)
     {
         if (criteria.Equals(SnapshotSelectionCriteria.None))
             return;
@@ -88,7 +94,9 @@ public class EventStoreSnapshotStore : SnapshotStore
         if (snapshotToDelete == null)
             return;
 
-        var currentMetaData = await _eventStoreClient.GetStreamMetadataAsync(streamName, cancellationToken: cancellationToken);
+        var currentMetaData = await _eventStoreClient.GetStreamMetadataAsync(
+            streamName,
+            cancellationToken: cancellationToken);
 
         await _eventStoreClient.SetStreamMetadataAsync(
             streamName,
@@ -127,6 +135,7 @@ public class EventStoreSnapshotStore : SnapshotStore
             .Run(_mat);
         
         cancellationToken.Register(() => killSwitch.Abort(new TimeoutException()));
+        
         return await task;
     }
 }

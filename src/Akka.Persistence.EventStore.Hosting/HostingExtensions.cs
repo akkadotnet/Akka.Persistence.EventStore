@@ -26,7 +26,8 @@ public static class HostingExtensions
         string? materializerDispatcher = null,
         TimeSpan? queryNoStreamTimeout = null,
         int? parallelism = null,
-        int? bufferSize = null)
+        int? bufferSize = null,
+        bool disableRevisionCheck = false)
     {
         if (mode == PersistenceMode.SnapshotStore && journalBuilder is not null)
             throw new Exception($"{nameof(journalBuilder)} can only be set when {nameof(mode)} is set to either {PersistenceMode.Both} or {PersistenceMode.Journal}");
@@ -47,7 +48,8 @@ public static class HostingExtensions
             MaterializerDispatcher = materializerDispatcher,
             QueryNoStreamTimeout = queryNoStreamTimeout,
             Parallelism = parallelism,
-            BufferSize = bufferSize
+            BufferSize = bufferSize,
+            DisableRevisionCheck = disableRevisionCheck
         };
         
         var adapters = new AkkaPersistenceJournalBuilder(journalOptions.Identifier, builder);

@@ -39,6 +39,8 @@ akka.persistence.journal.eventstore {
         actualPluginConfig.GetString("buffer-size").Should().Be(defaultConfig.GetString("buffer-size"));
         actualPluginConfig.GetString("materializer-dispatcher").Should()
             .Be(defaultConfig.GetString("materializer-dispatcher"));
+        actualPluginConfig.GetBoolean("disable-revision-check").Should()
+            .Be(defaultConfig.GetBoolean("disable-revision-check"));
         actualConfig.GetString("akka.persistence.query.plugin").Should().Be(EventStorePersistence.QueryConfigPath);
     }
 
@@ -58,7 +60,8 @@ akka.persistence.journal.eventstore {
             Tenant = "tenant",
             MaterializerDispatcher = "custom-dispatcher",
             Parallelism = 10,
-            BufferSize = 1000
+            BufferSize = 1000,
+            DisableRevisionCheck = true
         };
 
         var fullConfig = opt.ToConfig();
@@ -78,5 +81,6 @@ akka.persistence.journal.eventstore {
         config.Parallelism.Should().Be(10);
         config.BufferSize.Should().Be(1000);
         config.MaterializerDispatcher.Should().Be("custom-dispatcher");
+        config.DisableRevisionCheck.Should().Be(true);
     }
 }

@@ -70,7 +70,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             .ViaMaterialized(KillSwitches.Single<ReplayCompletion<IPersistentRepresentation>>(), Keep.Right)
             .ToMaterialized(new FirstOrDefault<ReplayCompletion<IPersistentRepresentation>>(), Keep.Both)
             .Run(_mat);
-        
+
         cancellationToken.Register(() => killSwitch.Abort(new TimeoutException()));
         var lastMessage = await task;
 
@@ -78,7 +78,8 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
             return lastMessage.Data.SequenceNr;
 
         var metadata =
-            await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId, _tenantSettings), cancellationToken: cancellationToken);
+            await _eventStoreClient.GetStreamMetadataAsync(_settings.GetStreamName(persistenceId, _tenantSettings),
+                cancellationToken: cancellationToken);
 
         var customMetaData = metadata.Metadata.CustomMetadata?.Deserialize<Dictionary<string, object>>() ??
                              new Dictionary<string, object>();
@@ -118,7 +119,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
     }
 
     protected override Task<IImmutableList<Exception?>> WriteMessagesAsync(
-        IEnumerable<AtomicWrite> atomicWrites, 
+        IEnumerable<AtomicWrite> atomicWrites,
         CancellationToken cancellationToken)
     {
         var messagesList = atomicWrites.ToImmutableList();
@@ -126,13 +127,16 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
         var lowSequenceId = messagesList.Min(x => x.LowestSequenceNr) - 2;
 
-        var expectedVersion = lowSequenceId < 0
-            ? StreamRevision.None
-            : StreamRevision.FromInt64(lowSequenceId);
+        var expectedVersion = _settings.DisableRevisionCheck
+            ? (StreamRevision?)null
+            : lowSequenceId < 0
+                ? StreamRevision.None
+                : StreamRevision.FromInt64(lowSequenceId);
 
         var currentTimestamp = DateTime.Now.Ticks;
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _pendingWriteCts.Token);
+
         var future = _writeQueue
             .Write(
                 _settings.GetStreamName(persistenceId, _tenantSettings),
@@ -204,7 +208,8 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
 
         if (lastMessage != null)
         {
-            var metadata = await _eventStoreClient.GetStreamMetadataAsync(streamName, cancellationToken: cancellationToken);
+            var metadata =
+                await _eventStoreClient.GetStreamMetadataAsync(streamName, cancellationToken: cancellationToken);
 
             var truncatePosition = lastMessage.Position + 1;
 
@@ -227,7 +232,7 @@ public class EventStoreJournal : AsyncWriteJournal, IWithUnboundedStash
                         truncatePosition,
                         metadata.Metadata.CacheControl,
                         metadata.Metadata.Acl,
-                        JsonSerializer.SerializeToDocument(customMetaData)), 
+                        JsonSerializer.SerializeToDocument(customMetaData)),
                     cancellationToken: cancellationToken);
         }
     }
