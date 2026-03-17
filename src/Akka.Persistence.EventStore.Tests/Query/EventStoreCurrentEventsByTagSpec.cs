@@ -23,11 +23,9 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
 
     /// <summary>
     /// Overrides the base TCK test because EventStore projections are eventually consistent.
-    /// The base test writes events, then immediately queries a projected "green" tag stream and
-    /// uses backpressure (Request 2, ExpectNoMsg, Request 2) to verify paging. However, the
-    /// projected stream may already be complete with only the first batch of events indexed,
-    /// causing OnComplete to race with ExpectNoMsg. This override adds a delay for projection
-    /// catch-up and requests all events at once.
+    /// The base test uses backpressure paging (Request 2, ExpectNoMsg, Request 2) which races
+    /// with stream completion when the projection hasn't fully caught up. This override polls
+    /// the projection until all expected events are indexed before asserting.
     /// </summary>
     [Fact]
     public override void ReadJournal_query_CurrentEventsByTag_should_find_existing_events()
@@ -51,8 +49,10 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         b.Tell("a green leaf");
         ExpectMsg("a green leaf-done");
 
-        // Allow EventStore projections to catch up before querying tag streams
-        Thread.Sleep(TimeSpan.FromMilliseconds(300));
+        // Wait for EventStore projections to catch up deterministically
+        WaitForTagProjectionAsync(queries, "green", 3).GetAwaiter().GetResult();
+        WaitForTagProjectionAsync(queries, "black", 1).GetAwaiter().GetResult();
+        WaitForTagProjectionAsync(queries, "apple", 1).GetAwaiter().GetResult();
 
         // Query "green" tag - should find 3 events
         var greenSrc = queries.CurrentEventsByTag("green", Offset.NoOffset());
@@ -93,7 +93,7 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
             ExpectMsg("a green apple-done");
         }
         
-        Thread.Sleep(TimeSpan.FromMilliseconds(300));
+        WaitForTagProjectionAsync(queries, "green", 150).GetAwaiter().GetResult();
 
         var greenSrc = queries.CurrentEventsByTag("green", offset: Offset.NoOffset());
         var probe = greenSrc.RunWith(this.SinkProbe<EventEnvelope>(), Materializer);
@@ -133,14 +133,37 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         actor.Tell("a green banana");
         ExpectMsg("a green banana-done");
 
-        await Task.Delay(TimeSpan.FromMilliseconds(300));
-        
+        await AwaitConditionAsync(async () =>
+        {
+            var events = await journal.CurrentEventsByTag(tag, item1Offset)
+                .RunWith(Sink.Seq<EventEnvelope>(), Materializer);
+            return events.Count >= 1;
+        }, TimeSpan.FromSeconds(10));
+
         var round3 = await journal.CurrentEventsByTag(tag, item1Offset)
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
         
         round3.Should().HaveCount(1);
     }
     
+    /// <summary>
+    /// Polls the EventStore projection until the expected number of events are indexed for a tag.
+    /// This is necessary because EventStore projections are eventually consistent.
+    /// </summary>
+    private async Task WaitForTagProjectionAsync(
+        ICurrentEventsByTagQuery queries,
+        string tag,
+        int expectedCount,
+        TimeSpan? timeout = null)
+    {
+        await AwaitConditionAsync(async () =>
+        {
+            var events = await queries.CurrentEventsByTag(tag, Offset.NoOffset())
+                .RunWith(Sink.Seq<EventEnvelope>(), Materializer);
+            return events.Count >= expectedCount;
+        }, timeout ?? TimeSpan.FromSeconds(10));
+    }
+
     private void ExpectEnvelope(
         TestSubscriber.Probe<EventEnvelope> probe,
         string persistenceId,
