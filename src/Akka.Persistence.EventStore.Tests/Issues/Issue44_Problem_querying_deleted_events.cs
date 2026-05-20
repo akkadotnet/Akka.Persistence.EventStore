@@ -6,13 +6,12 @@ using Akka.Streams;
 using Akka.Streams.TestKit;
 using FluentAssertions;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Akka.Persistence.EventStore.Tests.Issues;
 
 [Collection(nameof(EventStoreTestsDatabaseCollection))]
-public class Issue44_Problem_querying_deleted_events : Akka.TestKit.Xunit2.TestKit
+public class Issue44_Problem_querying_deleted_events : Akka.TestKit.Xunit.TestKit
 {
     private readonly IReadJournal _readJournal;
     private readonly ActorMaterializer _materializer;
