@@ -7,7 +7,7 @@ public class EventStoreContainer : IAsyncLifetime
     public string? EventStoreContainerName { get; private set; }
     public string? ConnectionString { get; private set; }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var startResponse = await EventStoreDockerContainer.Start();
         
@@ -15,7 +15,7 @@ public class EventStoreContainer : IAsyncLifetime
         EventStoreContainerName = startResponse.ContainerName;
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (!string.IsNullOrEmpty(EventStoreContainerName))
             await EventStoreDockerContainer.Stop(EventStoreContainerName);
