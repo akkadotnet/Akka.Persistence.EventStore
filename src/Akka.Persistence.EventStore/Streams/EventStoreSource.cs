@@ -92,19 +92,21 @@ public static class EventStoreSource
                     maxBufferSize,
                     cancellationToken: ct);
 
-                ct.Register(() => subscription.Dispose());
-                
+                var ackQueue = EventStoreAckQueue.From(ct);
+
+                ct.Register(subscription.Dispose);
+
                 return Task
                     .FromResult<(IAsyncEnumerator<ResolvedEvent> source,
                         Func<ResolvedEvent, PersistentSubscriptionEvent> transform)>((
                         subscription.GetAsyncEnumerator(ct),
                         evnt => new PersistentSubscriptionEvent(
                             evnt,
-                            () => subscription.Ack(evnt),
-                            (reason, action) => subscription.Nack(
+                            () => ackQueue.Enqueue(() => subscription.Ack(evnt)),
+                            (reason, action) => ackQueue.Enqueue(() => subscription.Nack(
                                 action ?? PersistentSubscriptionNakEventAction.Unknown,
                                 reason,
-                                evnt))));
+                                evnt)))));
             });
         }
     }
