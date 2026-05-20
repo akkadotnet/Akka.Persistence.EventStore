@@ -1,10 +1,10 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AkkaVersion>1.5.46</AkkaVersion>
-    <AkkaHostingVersion>1.5.46</AkkaHostingVersion>
+    <AkkaVersion>1.5.68</AkkaVersion>
+    <AkkaHostingVersion>1.5.68</AkkaHostingVersion>
     <EventStoreVersion>23.3.9</EventStoreVersion>
-    <XunitVersion>2.9.3</XunitVersion>
+    <XunitVersion>3.2.2</XunitVersion>
     <TestSdkVersion>17.14.1</TestSdkVersion>
   </PropertyGroup>
   <!-- Akka.NET Package Versions -->
@@ -27,8 +27,8 @@
     <PackageVersion Include="Akka.Hosting.TestKit" Version="$(AkkaVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
-    <PackageVersion Include="xunit" Version="$(XunitVersion)" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.3">
+    <PackageVersion Include="xunit.v3" Version="$(XunitVersion)" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
