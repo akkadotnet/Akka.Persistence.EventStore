@@ -24,45 +24,43 @@ internal class EventStoreWriter<TSource>
         return new EventStoreWriter<TSource>(
             Source
                 .Queue<QueueItem>(bufferSize, OverflowStrategy.DropNew)
-                .SelectAsync(parallelism, async x =>
-                {
-                    try
+                .Via(SerializedByKeyFlow.Create<QueueItem, NotUsed>(
+                    x => x.StreamName,
+                    async x =>
                     {
-                        var events = await Task.WhenAll(x
-                                .Events
-                                .Select(serialize));
+                        try
+                        {
+                            var events = await Task.WhenAll(x.Events.Select(serialize));
 
-                        if (x.ExpectedRevision != null)
-                        {
-                            await client.AppendToStreamAsync(
-                                x.StreamName,
-                                x.ExpectedRevision.Value,
-                                events,
-                                configureOperationOptions: options => options.ThrowOnAppendFailure = true,
-                                cancellationToken: x.CancellationToken);
-                        }
-                        else
-                        {
-                            await client
-                                .AppendToStreamAsync(
+                            if (x.ExpectedRevision != null)
+                            {
+                                await client.AppendToStreamAsync(
+                                    x.StreamName,
+                                    x.ExpectedRevision.Value,
+                                    events,
+                                    configureOperationOptions: options => options.ThrowOnAppendFailure = true,
+                                    cancellationToken: x.CancellationToken);
+                            }
+                            else
+                            {
+                                await client.AppendToStreamAsync(
                                     x.StreamName,
                                     StreamState.Any,
                                     events,
                                     configureOperationOptions: options => options.ThrowOnAppendFailure = true,
                                     cancellationToken: x.CancellationToken);
+                            }
+
+                            x.Ack.TrySetResult(NotUsed.Instance);
+                        }
+                        catch (Exception e)
+                        {
+                            x.Ack.TrySetException(e);
                         }
 
-                        x.Ack.TrySetResult(NotUsed.Instance);
-
                         return NotUsed.Instance;
-                    }
-                    catch (Exception e)
-                    {
-                        x.Ack.TrySetException(e);
-
-                        return NotUsed.Instance;
-                    }
-                })
+                    },
+                    parallelism))
                 .ToMaterialized(Sink.Ignore<NotUsed>(), Keep.Left)
                 .Run(materializer));
     }
