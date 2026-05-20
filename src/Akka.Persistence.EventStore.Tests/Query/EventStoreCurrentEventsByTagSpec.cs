@@ -7,7 +7,6 @@ using Akka.Streams.Dsl;
 using Akka.Streams.TestKit;
 using FluentAssertions;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Akka.Persistence.EventStore.Tests.Query;
