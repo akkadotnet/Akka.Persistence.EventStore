@@ -1,3 +1,7 @@
+#### 1.5.68 May 20th, 2026 ####
+* [Bumped Akka to version 1.5.68](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/79)
+* [Fixed a issue with concurrent writes](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/78)
+
 #### 1.5.59 January 26th, 2025 ####
 * [Bumped Akka to version 1.5.59](https://github.com/akkadotnet/akka.net/releases/tag/1.5.59)
 
