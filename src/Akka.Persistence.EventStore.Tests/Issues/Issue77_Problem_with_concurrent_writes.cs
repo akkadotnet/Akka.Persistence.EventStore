@@ -6,12 +6,11 @@ using Akka.Persistence.EventStore.Streams;
 using EventStore.Client;
 using FluentAssertions;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Akka.Persistence.EventStore.Tests.Issues;
 
 [Collection(nameof(EventStoreTestsDatabaseCollection))]
-public class Issue77_Problem_with_concurrent_writes : Akka.TestKit.Xunit2.TestKit
+public class Issue77_Problem_with_concurrent_writes : Akka.TestKit.Xunit.TestKit
 {
     private readonly EventStoreClient _client;
     private readonly ActorMaterializer _materializer;
