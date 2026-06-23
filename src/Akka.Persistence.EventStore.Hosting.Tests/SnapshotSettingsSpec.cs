@@ -1,6 +1,5 @@
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
-using FluentAssertions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
@@ -28,10 +27,10 @@ akka.persistence.snapshot-store.eventstore {
 
         actualConfig = actualConfig.GetConfig(EventStorePersistence.SnapshotStoreConfigPath);
 
-        actualConfig.GetString("connection-string").Should().Be("a");
-        actualConfig.GetString("adapter").Should().Be(defaultConfig.GetString("adapter"));
-        actualConfig.GetString("prefix").Should().Be(defaultConfig.GetString("prefix"));
-        actualConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
+        Assert.Equal("a", actualConfig.GetString("connection-string"));
+        Assert.Equal(defaultConfig.GetString("adapter"), actualConfig.GetString("adapter"));
+        Assert.Equal(defaultConfig.GetString("prefix"), actualConfig.GetString("prefix"));
+        Assert.Equal(defaultConfig.GetString("tenant"), actualConfig.GetString("tenant"));
         actualConfig.GetString("materializer-dispatcher").Should()
             .Be(defaultConfig.GetString("materializer-dispatcher"));
     }
@@ -56,10 +55,10 @@ akka.persistence.snapshot-store.eventstore {
         
         var config = new EventStoreSnapshotSettings(snapshotConfig);
 
-        config.ConnectionString.Should().Be("a");
-        config.Adapter.Should().Be("custom");
-        config.StreamPrefix.Should().Be("custom@");
-        config.Tenant.Should().Be("tenant");
-        config.MaterializerDispatcher.Should().Be("custom-dispatcher");
+        Assert.Equal("a", config.ConnectionString);
+        Assert.Equal("custom", config.Adapter);
+        Assert.Equal("custom@", config.StreamPrefix);
+        Assert.Equal("tenant", config.Tenant);
+        Assert.Equal("custom-dispatcher", config.MaterializerDispatcher);
     }
 }

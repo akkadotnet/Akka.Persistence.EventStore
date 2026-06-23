@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Benchmarks.BenchmarkActors;
 using Akka.Persistence.EventStore.Tests;
-using FluentAssertions.Extensions;
 
 namespace Akka.Persistence.EventStore.Benchmarks;
 

@@ -4,7 +4,6 @@ using System.Text.Json;
 using Akka.Streams;
 using Akka.Persistence.EventStore.Streams;
 using EventStore.Client;
-using FluentAssertions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests.Issues;
@@ -114,8 +113,7 @@ public class Issue77_Problem_with_concurrent_writes : Akka.TestKit.Xunit.TestKit
             .ToList();
 
         var act = async () => await Task.WhenAll(writeTasks);
-
-        await act.Should()
+act.Should()
             .NotThrowAsync(
                 "all writes should succeed even when enqueued concurrently");
 
@@ -132,8 +130,7 @@ public class Issue77_Problem_with_concurrent_writes : Akka.TestKit.Xunit.TestKit
             await foreach (var e in _client.ReadStreamAsync(Direction.Forwards, streamName, StreamPosition.Start))
                 events.Add(e);
 
-            events.Should().HaveCount(expectedCount,
-                "stream '{0}' should contain {1} events", streamName, expectedCount);
+            Assert.Equal(expectedCount, (events)?.Count());
         }
     }
 }

@@ -4,7 +4,6 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.Streams.TestKit;
 using EventStore.Client;
-using FluentAssertions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests;
@@ -179,7 +178,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
         
         var subscriptionBeforeCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 
-        subscriptionBeforeCancel.Connections.Should().HaveCount(1);
+        Assert.Single(subscriptionBeforeCancel.Connections ?? []);
 
         probe.Cancel();
         
@@ -187,7 +186,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
 
         var subscriptionAfterCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 
-        subscriptionAfterCancel.Connections.Should().HaveCount(0);
+        Assert.Empty(subscriptionAfterCancel.Connections ?? []);
     }
 
     private async Task<TestSubscriber.Probe<PersistentSubscriptionEvent>> Setup(

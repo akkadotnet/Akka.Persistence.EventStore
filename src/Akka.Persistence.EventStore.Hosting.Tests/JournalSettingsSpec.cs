@@ -1,6 +1,5 @@
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
-using FluentAssertions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
@@ -28,20 +27,20 @@ akka.persistence.journal.eventstore {
 
         var actualPluginConfig = actualConfig.GetConfig(EventStorePersistence.JournalConfigPath);
 
-        actualPluginConfig.GetString("connection-string").Should().Be(defaultConfig.GetString("connection-string"));
-        actualPluginConfig.GetString("adapter").Should().Be(defaultConfig.GetString("adapter"));
-        actualPluginConfig.GetString("prefix").Should().Be(defaultConfig.GetString("prefix"));
-        actualPluginConfig.GetString("tagged-stream-name-pattern").Should().Be(defaultConfig.GetString("tagged-stream-name-pattern"));
-        actualPluginConfig.GetString("persistence-ids-stream-name").Should().Be(defaultConfig.GetString("persistence-ids-stream-name"));
-        actualPluginConfig.GetString("persisted-events-stream-name").Should().Be(defaultConfig.GetString("persisted-events-stream-name"));
-        actualPluginConfig.GetString("tenant").Should().Be(defaultConfig.GetString("tenant"));
-        actualPluginConfig.GetString("parallelism").Should().Be(defaultConfig.GetString("parallelism"));
-        actualPluginConfig.GetString("buffer-size").Should().Be(defaultConfig.GetString("buffer-size"));
+        Assert.Equal(defaultConfig.GetString("connection-string"), actualPluginConfig.GetString("connection-string"));
+        Assert.Equal(defaultConfig.GetString("adapter"), actualPluginConfig.GetString("adapter"));
+        Assert.Equal(defaultConfig.GetString("prefix"), actualPluginConfig.GetString("prefix"));
+        Assert.Equal(defaultConfig.GetString("tagged-stream-name-pattern"), actualPluginConfig.GetString("tagged-stream-name-pattern"));
+        Assert.Equal(defaultConfig.GetString("persistence-ids-stream-name"), actualPluginConfig.GetString("persistence-ids-stream-name"));
+        Assert.Equal(defaultConfig.GetString("persisted-events-stream-name"), actualPluginConfig.GetString("persisted-events-stream-name"));
+        Assert.Equal(defaultConfig.GetString("tenant"), actualPluginConfig.GetString("tenant"));
+        Assert.Equal(defaultConfig.GetString("parallelism"), actualPluginConfig.GetString("parallelism"));
+        Assert.Equal(defaultConfig.GetString("buffer-size"), actualPluginConfig.GetString("buffer-size"));
         actualPluginConfig.GetString("materializer-dispatcher").Should()
             .Be(defaultConfig.GetString("materializer-dispatcher"));
         actualPluginConfig.GetBoolean("disable-revision-check").Should()
             .Be(defaultConfig.GetBoolean("disable-revision-check"));
-        actualConfig.GetString("akka.persistence.query.plugin").Should().Be(EventStorePersistence.QueryConfigPath);
+        Assert.Equal(EventStorePersistence.QueryConfigPath, actualConfig.GetString("akka.persistence.query.plugin"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
@@ -71,16 +70,16 @@ akka.persistence.journal.eventstore {
         
         var config = new EventStoreJournalSettings(journalConfig);
         
-        config.ConnectionString.Should().Be("a");
-        config.Adapter.Should().Be("custom");
-        config.StreamPrefix.Should().Be("prefix");
-        config.TaggedStreamNamePattern.Should().Be("custom-tagged-[[TAG]]");
-        config.PersistedEventsStreamName.Should().Be("persisted-events-custom");
-        config.PersistenceIdsStreamName.Should().Be("persistence-ids-custom");
-        config.Tenant.Should().Be("tenant");
-        config.Parallelism.Should().Be(10);
-        config.BufferSize.Should().Be(1000);
-        config.MaterializerDispatcher.Should().Be("custom-dispatcher");
-        config.DisableRevisionCheck.Should().Be(true);
+        Assert.Equal("a", config.ConnectionString);
+        Assert.Equal("custom", config.Adapter);
+        Assert.Equal("prefix", config.StreamPrefix);
+        Assert.Equal("custom-tagged-[[TAG]]", config.TaggedStreamNamePattern);
+        Assert.Equal("persisted-events-custom", config.PersistedEventsStreamName);
+        Assert.Equal("persistence-ids-custom", config.PersistenceIdsStreamName);
+        Assert.Equal("tenant", config.Tenant);
+        Assert.Equal(10, config.Parallelism);
+        Assert.Equal(1000, config.BufferSize);
+        Assert.Equal("custom-dispatcher", config.MaterializerDispatcher);
+        Assert.Equal(true, config.DisableRevisionCheck);
     }
 }
