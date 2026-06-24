@@ -32,19 +32,19 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1", TestContext.Current.CancellationToken);
 
         await firstMessage.Ack();
-        
-        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2");
+
+        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2", TestContext.Current.CancellationToken);
 
         await secondMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
-        
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+
         probe.Cancel();
     }
-    
+
     [Fact]
     public async Task ReadJournal_PersistentSubscription_should_see_new_events()
     {
@@ -54,26 +54,27 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1", TestContext.Current.CancellationToken);
 
         await firstMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
-        
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
+
         await _eventStoreClient.AppendToStreamAsync(
             streamName,
-            StreamState.Any, 
+            StreamState.Any,
             ImmutableList.Create(
                 new EventData(
                     Uuid.NewUuid(),
                     $"{streamName}-2",
-                    "{}"u8.ToArray())));
-        
-        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2");
+                    "{}"u8.ToArray())),
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2", TestContext.Current.CancellationToken);
 
         await secondMessage.Ack();
-        
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
+
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
 
         probe.Cancel();
     }
@@ -91,12 +92,12 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
         {
             var itemId = i;
             
-            var msg = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-{itemId}");
+            var msg = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-{itemId}", TestContext.Current.CancellationToken);
 
             await msg.Ack();
         }
-        
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
         
         probe.Cancel();
     }
@@ -113,30 +114,31 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1", TestContext.Current.CancellationToken);
 
         await firstMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
 
-        await _subscriptionClient.RestartSubsystemAsync();
+        await _subscriptionClient.RestartSubsystemAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Task.Delay(TimeSpan.FromSeconds(10));
-        
+        await Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
         await _eventStoreClient.AppendToStreamAsync(
             streamName,
-            StreamState.Any, 
+            StreamState.Any,
             ImmutableList.Create(
                 new EventData(
                     Uuid.NewUuid(),
                     $"{streamName}-2",
-                    "{}"u8.ToArray())));
-        
-        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2");
+                    "{}"u8.ToArray())),
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var secondMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-2", TestContext.Current.CancellationToken);
 
         await secondMessage.Ack();
-        
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
+
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
 
         probe.Cancel();
     }
@@ -150,15 +152,15 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1", TestContext.Current.CancellationToken);
 
         await firstMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
 
-        await _subscriptionClient.RestartSubsystemAsync();
+        await _subscriptionClient.RestartSubsystemAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        await probe.ExpectErrorAsync();
+        await probe.ExpectErrorAsync(TestContext.Current.CancellationToken);
     }
     
     [Fact]
@@ -170,21 +172,21 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
 
         probe.Request(5);
 
-        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1");
+        var firstMessage = await probe.ExpectNextAsync<PersistentSubscriptionEvent>(x => x.Event.Event.EventType == $"{streamName}-1", TestContext.Current.CancellationToken);
 
         await firstMessage.Ack();
 
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(300));
-        
-        var subscriptionBeforeCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+
+        var subscriptionBeforeCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Single(subscriptionBeforeCancel.Connections);
 
         probe.Cancel();
-        
-        await Task.Delay(TimeSpan.FromMilliseconds(300));
 
-        var subscriptionAfterCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
+        await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+
+        var subscriptionAfterCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(subscriptionAfterCancel.Connections);
     }
@@ -197,18 +199,20 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
         await _subscriptionClient.CreateToStreamAsync(
             streamName,
             streamName,
-            new PersistentSubscriptionSettings());
+            new PersistentSubscriptionSettings(),
+            cancellationToken: TestContext.Current.CancellationToken);
 
         for (var i = 1; i <= numberOfEvents; i++)
         {
             await _eventStoreClient.AppendToStreamAsync(
                 streamName,
-                StreamState.Any, 
+                StreamState.Any,
                 ImmutableList.Create(
                     new EventData(
                         Uuid.NewUuid(),
                         $"{streamName}-{i}",
-                        "{}"u8.ToArray())));
+                        "{}"u8.ToArray())),
+                cancellationToken: TestContext.Current.CancellationToken);
         }
 
         var stream = EventStoreSource
