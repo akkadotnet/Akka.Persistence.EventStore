@@ -50,7 +50,7 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 10).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        Assert.Equal(Enumerable.Range(2000001, 10).Select(x => (long)x).OrderBy(x => x).ToList(), events.Select(e => e.SequenceNr).OrderBy(x => x).ToList());
     }
 
     [Benchmark]
@@ -61,7 +61,7 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 100).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        Assert.Equal(Enumerable.Range(2000001, 100).Select(x => (long)x).OrderBy(x => x).ToList(), events.Select(e => e.SequenceNr).OrderBy(x => x).ToList());
     }
 
     [Benchmark]
@@ -72,7 +72,7 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 1000).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        Assert.Equal(Enumerable.Range(2000001, 1000).Select(x => (long)x).OrderBy(x => x).ToList(), events.Select(e => e.SequenceNr).OrderBy(x => x).ToList());
     }
 
     [Benchmark]
@@ -83,6 +83,6 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 10000).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        Assert.Equal(Enumerable.Range(2000001, 10000).Select(x => (long)x).OrderBy(x => x).ToList(), events.Select(e => e.SequenceNr).OrderBy(x => x).ToList());
     }
 }
