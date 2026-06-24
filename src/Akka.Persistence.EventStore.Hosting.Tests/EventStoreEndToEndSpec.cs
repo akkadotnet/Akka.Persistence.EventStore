@@ -51,14 +51,14 @@ public class EventStoreEndToEndSpec(ITestOutputHelper output, EventStoreContaine
         var snapshot = await myPersistentActor.Ask<int[]>(GetAll, timeout);
 
         // assert
-        Assert.Equivalent(new[] { 1, 2 }, snapshot);
+        Assert.Equivalent(new[] { 1, 2 }, snapshot, strict: true);
 
         // kill + recreate actor with same PersistentId
         await myPersistentActor.GracefulStop(timeout);
         var myPersistentActor2 = Sys.ActorOf(Props.Create(() => new MyPersistenceActor(PId)));
 
         var snapshot2 = await myPersistentActor2.Ask<int[]>(GetAll, timeout);
-        Assert.Equivalent(new[] { 1, 2 }, snapshot2);
+        Assert.Equivalent(new[] { 1, 2 }, snapshot2, strict: true);
 
         // validate configs
         var config = Sys.Settings.Config;

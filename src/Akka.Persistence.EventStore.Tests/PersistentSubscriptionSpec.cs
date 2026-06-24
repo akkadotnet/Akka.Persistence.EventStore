@@ -178,7 +178,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
         
         var subscriptionBeforeCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 
-        Assert.Single(subscriptionBeforeCancel.Connections ?? []);
+        Assert.Single(subscriptionBeforeCancel.Connections);
 
         probe.Cancel();
         
@@ -186,7 +186,7 @@ public class PersistentSubscriptionSpec : Akka.TestKit.Xunit.TestKit
 
         var subscriptionAfterCancel = await _subscriptionClient.GetInfoToStreamAsync(streamName, streamName);
 
-        Assert.Empty(subscriptionAfterCancel.Connections ?? []);
+        Assert.Empty(subscriptionAfterCancel.Connections);
     }
 
     private async Task<TestSubscriber.Probe<PersistentSubscriptionEvent>> Setup(

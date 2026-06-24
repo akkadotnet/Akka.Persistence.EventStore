@@ -61,7 +61,7 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
 
         var round1 = await journal.CurrentEventsByTag(tag, Offset.NoOffset())
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
-        Assert.Single(round1 ?? []);
+        Assert.Single(round1);
 
         var item1Offset = round1[0].Offset;
         Assert.IsType<Sequence>(round1[0].Offset);
@@ -69,7 +69,7 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
 
         var round2 = await journal.CurrentEventsByTag(tag, item1Offset)
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
-        Assert.Empty(round2 ?? []);
+        Assert.Empty(round2);
 
         actor.Tell("a green banana");
         ExpectMsg("a green banana-done");
@@ -79,7 +79,7 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         var round3 = await journal.CurrentEventsByTag(tag, item1Offset)
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
         
-        Assert.Single(round3 ?? []);
+        Assert.Single(round3);
     }
     
     private void ExpectEnvelope(

@@ -78,6 +78,6 @@ akka.persistence.journal.eventstore {
         Assert.Equal(10, config.Parallelism);
         Assert.Equal(1000, config.BufferSize);
         Assert.Equal("custom-dispatcher", config.MaterializerDispatcher);
-        Assert.Equal(true, config.DisableRevisionCheck);
+        Assert.True(config.DisableRevisionCheck);
     }
 }

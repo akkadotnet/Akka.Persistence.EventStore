@@ -127,7 +127,7 @@ public class Issue77_Problem_with_concurrent_writes : Akka.TestKit.Xunit.TestKit
             await foreach (var e in _client.ReadStreamAsync(Direction.Forwards, streamName, StreamPosition.Start))
                 events.Add(e);
 
-            Assert.Equal(expectedCount, (events)?.Count());
+            Assert.Equal(expectedCount, events.Count);
         }
     }
 }

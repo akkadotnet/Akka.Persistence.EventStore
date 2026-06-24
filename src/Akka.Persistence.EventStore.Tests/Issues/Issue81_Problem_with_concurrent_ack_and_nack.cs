@@ -86,9 +86,9 @@ public class Issue81_Problem_with_concurrent_ack_and_nack : Akka.TestKit.Xunit.T
             .Take(numberOfEvents)
             .RunWith(Sink.Ignore<PersistentSubscriptionEvent>(), Sys.Materializer());
 
-        try { await task; } catch { }
+        await task.WaitAsync(TimeSpan.FromSeconds(30));
 
-        Assert.Empty(errors ?? []);
+        Assert.Empty(errors);
         Assert.Equal(numberOfEvents, ackedCount);
     }
     
@@ -143,9 +143,9 @@ public class Issue81_Problem_with_concurrent_ack_and_nack : Akka.TestKit.Xunit.T
             .Take(numberOfEvents)
             .RunWith(Sink.Ignore<PersistentSubscriptionEvent>(), Sys.Materializer());
 
-        try { await task; } catch { }
+        await task.WaitAsync(TimeSpan.FromSeconds(30));
 
-        Assert.Empty(errors ?? []);
+        Assert.Empty(errors);
         Assert.Equal(numberOfEvents, nackedCount);
     }
 }
