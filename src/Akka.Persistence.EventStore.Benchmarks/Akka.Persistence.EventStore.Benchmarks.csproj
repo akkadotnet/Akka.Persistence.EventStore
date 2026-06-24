@@ -14,9 +14,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Akka.Persistence.TestKit.Xunit2" />
+      <PackageReference Include="Akka.TestKit.Xunit" />
       <PackageReference Include="BenchmarkDotNet" />
-      <PackageReference Include="xunit.v3" />
         <PackageReference Include="JetBrains.Annotations">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
