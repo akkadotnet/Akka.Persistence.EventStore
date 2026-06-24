@@ -40,5 +40,6 @@
     <GlobalPackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
     <PackageVersion Include="JetBrains.Annotations" Version="2025.2.0" />
     <PackageVersion Include="NuGet.Frameworks" Version="6.13.2" />
+    <PackageVersion Include="FluentAssertions" Version="8.5.0" />
   </ItemGroup>
 </Project>

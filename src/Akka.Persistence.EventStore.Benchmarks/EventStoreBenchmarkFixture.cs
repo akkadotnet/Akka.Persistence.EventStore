@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Benchmarks.BenchmarkActors;
 using Akka.Persistence.EventStore.Tests;
+using FluentAssertions.Extensions;
 
 namespace Akka.Persistence.EventStore.Benchmarks;
 
@@ -94,7 +95,7 @@ public static class EventStoreBenchmarkFixture
     
         await initializer.Ask<InitializeDbActor.Initialized>(
             InitializeDbActor.Initialize.Instance,
-            TimeSpan.FromMinutes(20));
+            20.Minutes());
     }
 
     public static async Task Cleanup()

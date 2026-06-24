@@ -6,7 +6,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Loggers;
-using Xunit;
+using FluentAssertions;
 
 namespace Akka.Persistence.EventStore.Benchmarks;
 
@@ -50,7 +50,7 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 10).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        events.Select(e => e.SequenceNr).Should().BeEquivalentTo(Enumerable.Range(2000001, 10));
     }
 
     [Benchmark]
@@ -61,7 +61,7 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 100).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        events.Select(e => e.SequenceNr).Should().BeEquivalentTo(Enumerable.Range(2000001, 100));
     }
 
     [Benchmark]
@@ -72,7 +72,7 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 1000).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        events.Select(e => e.SequenceNr).Should().BeEquivalentTo(Enumerable.Range(2000001, 1000));
     }
 
     [Benchmark]
@@ -83,6 +83,6 @@ public class QueryByTagBenchmarks
         await source.RunForeach(
             msg => { events.Add(msg); },
             _materializer);
-        Assert.Equal(Enumerable.Range(2000001, 10000).OrderBy(x => x), events.Select(e => e.SequenceNr).OrderBy(x => x));
+        events.Select(e => e.SequenceNr).Should().BeEquivalentTo(Enumerable.Range(2000001, 10000));
     }
 }
