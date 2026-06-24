@@ -31,8 +31,7 @@ akka.persistence.snapshot-store.eventstore {
         Assert.Equal(defaultConfig.GetString("adapter"), actualConfig.GetString("adapter"));
         Assert.Equal(defaultConfig.GetString("prefix"), actualConfig.GetString("prefix"));
         Assert.Equal(defaultConfig.GetString("tenant"), actualConfig.GetString("tenant"));
-        actualConfig.GetString("materializer-dispatcher").Should()
-            .Be(defaultConfig.GetString("materializer-dispatcher"));
+        Assert.Equal(defaultConfig.GetString("materializer-dispatcher"), actualConfig.GetString("materializer-dispatcher"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]

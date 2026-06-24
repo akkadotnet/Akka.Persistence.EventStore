@@ -15,7 +15,6 @@
         <PackageReference Include="xunit.runner.visualstudio"/>
         <PackageReference Include="Akka.Persistence.TCK"/>
         <PackageReference Include="Docker.DotNet"/>
-        <PackageReference Include="FluentAssertions" />
         <PackageReference Include="JetBrains.Annotations">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>

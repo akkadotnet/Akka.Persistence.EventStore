@@ -37,7 +37,7 @@ public class EventStoreEndToEndSpec(ITestOutputHelper output, EventStoreContaine
     {
         var senderProbe = CreateTestProbe();
         
-        var timeout = 3.Seconds();
+        var timeout = TimeSpan.FromSeconds(3);
 
         // arrange
         var myPersistentActor = await ActorRegistry.GetAsync<MyPersistenceActor>();

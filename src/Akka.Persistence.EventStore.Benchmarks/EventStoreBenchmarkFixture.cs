@@ -94,7 +94,7 @@ public static class EventStoreBenchmarkFixture
     
         await initializer.Ask<InitializeDbActor.Initialized>(
             InitializeDbActor.Initialize.Instance,
-            20.Minutes());
+            TimeSpan.FromMinutes(20));
     }
 
     public static async Task Cleanup()

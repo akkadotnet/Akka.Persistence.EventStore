@@ -36,10 +36,8 @@ akka.persistence.journal.eventstore {
         Assert.Equal(defaultConfig.GetString("tenant"), actualPluginConfig.GetString("tenant"));
         Assert.Equal(defaultConfig.GetString("parallelism"), actualPluginConfig.GetString("parallelism"));
         Assert.Equal(defaultConfig.GetString("buffer-size"), actualPluginConfig.GetString("buffer-size"));
-        actualPluginConfig.GetString("materializer-dispatcher").Should()
-            .Be(defaultConfig.GetString("materializer-dispatcher"));
-        actualPluginConfig.GetBoolean("disable-revision-check").Should()
-            .Be(defaultConfig.GetBoolean("disable-revision-check"));
+        Assert.Equal(defaultConfig.GetString("materializer-dispatcher"), actualPluginConfig.GetString("materializer-dispatcher"));
+        Assert.Equal(defaultConfig.GetBoolean("disable-revision-check"), actualPluginConfig.GetBoolean("disable-revision-check"));
         Assert.Equal(EventStorePersistence.QueryConfigPath, actualConfig.GetString("akka.persistence.query.plugin"));
     }
 

@@ -64,7 +64,8 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         Assert.Single(round1 ?? []);
 
         var item1Offset = round1[0].Offset;
-        Assert.True((round1[0].Offset) is Sequence).And.Be(Offset.Sequence(0));
+        Assert.IsType<Sequence>(round1[0].Offset);
+        Assert.Equal(Offset.Sequence(0), round1[0].Offset);
 
         var round2 = await journal.CurrentEventsByTag(tag, item1Offset)
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());

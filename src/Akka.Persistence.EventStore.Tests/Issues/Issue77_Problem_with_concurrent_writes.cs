@@ -112,10 +112,7 @@ public class Issue77_Problem_with_concurrent_writes : Akka.TestKit.Xunit.TestKit
                 getExpectedRevision(i)))
             .ToList();
 
-        var act = async () => await Task.WhenAll(writeTasks);
-act.Should()
-            .NotThrowAsync(
-                "all writes should succeed even when enqueued concurrently");
+        await Task.WhenAll(writeTasks);
 
         // Group by stream and verify event counts
         var writesByStream = Enumerable

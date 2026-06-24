@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -16,7 +16,7 @@
     <ItemGroup>
       <PackageReference Include="Akka.Persistence.TestKit.Xunit2" />
       <PackageReference Include="BenchmarkDotNet" />
-      <PackageReference Include="FluentAssertions" />
+      <PackageReference Include="xunit.v3" />
         <PackageReference Include="JetBrains.Annotations">
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
