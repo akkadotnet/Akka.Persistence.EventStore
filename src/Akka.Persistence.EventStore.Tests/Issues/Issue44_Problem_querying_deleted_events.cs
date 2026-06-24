@@ -24,7 +24,7 @@ public class Issue44_Problem_querying_deleted_events : Akka.TestKit.Xunit.TestKi
     }
 
     [Fact]
-    public void ReadJournal_live_query_EventsByTag_should_ignore_deleted_events()
+    public async Task ReadJournal_live_query_EventsByTag_should_ignore_deleted_events()
     {
         if (_readJournal is not IEventsByTagQuery readJournal)
             throw IsTypeException.ForMismatchedType("IEventsByTagQuery", _readJournal.GetType().Name);
@@ -32,36 +32,36 @@ public class Issue44_Problem_querying_deleted_events : Akka.TestKit.Xunit.TestKi
         var testActor = Sys.ActorOf(Query.TestActor.Props("a"));
 
         testActor.Tell("a black car");
-        ExpectMsg<string>("a black car-done");
+        await ExpectMsgAsync<string>("a black car-done", cancellationToken: TestContext.Current.CancellationToken);
 
         testActor.Tell("a black cat");
-        ExpectMsg<string>("a black cat-done");
+        await ExpectMsgAsync<string>("a black cat-done", cancellationToken: TestContext.Current.CancellationToken);
 
         testActor.Tell("a black dog");
-        ExpectMsg<string>("a black dog-done");
+        await ExpectMsgAsync<string>("a black dog-done", cancellationToken: TestContext.Current.CancellationToken);
 
         testActor.Tell(new TestActor.DeleteCommand(2));
-        ExpectMsg<string>("2-deleted");
-        
-        ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        await ExpectMsgAsync<string>("2-deleted", cancellationToken: TestContext.Current.CancellationToken);
+
+        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
 
         var probe = readJournal.EventsByTag("black", Offset.NoOffset())
             .RunWith(this.SinkProbe<EventEnvelope>(), _materializer);
         
         probe.Request(5L);
         
-        ExpectEnvelope(probe, "a", 3L, "a black dog");
-        
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(100));
+        await ExpectEnvelopeAsync(probe, "a", 3L, "a black dog");
+
+        await probe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
         probe.Cancel();
     }
 
-    private static void ExpectEnvelope(TestSubscriber.Probe<EventEnvelope> probe,
+    private static async Task ExpectEnvelopeAsync(TestSubscriber.Probe<EventEnvelope> probe,
         string persistenceId,
         long sequenceNr,
         string @event)
     {
-        var eventEnvelope = probe.ExpectNext((Predicate<EventEnvelope>)(_ => true));
+        var eventEnvelope = await probe.ExpectNextAsync<EventEnvelope>(_ => true, TestContext.Current.CancellationToken);
         
         Assert.Equal(persistenceId, eventEnvelope.PersistenceId);
         
