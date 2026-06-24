@@ -4,7 +4,6 @@ using Akka.Persistence.EventStore.Tests.Query;
 using Akka.Persistence.Query;
 using Akka.Streams;
 using Akka.Streams.TestKit;
-using FluentAssertions;
 using Xunit;
 using Xunit.Sdk;
 
@@ -64,9 +63,9 @@ public class Issue44_Problem_querying_deleted_events : Akka.TestKit.Xunit.TestKi
     {
         var eventEnvelope = probe.ExpectNext((Predicate<EventEnvelope>)(_ => true));
         
-        eventEnvelope.PersistenceId.Should().Be(persistenceId);
+        Assert.Equal(persistenceId, eventEnvelope.PersistenceId);
         
-        eventEnvelope.SequenceNr.Should().Be(sequenceNr);
-        eventEnvelope.Event.Should().Be(@event);
+        Assert.Equal(sequenceNr, eventEnvelope.SequenceNr);
+        Assert.Equal(@event, eventEnvelope.Event);
     }
 }

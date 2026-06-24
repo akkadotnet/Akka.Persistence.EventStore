@@ -5,8 +5,6 @@ using Akka.Persistence.EventStore.Tests;
 using Akka.Persistence.Query;
 using Akka.Streams;
 using Akka.Streams.TestKit;
-using FluentAssertions;
-using FluentAssertions.Extensions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
@@ -39,7 +37,7 @@ public class EventStoreEndToEndSpec(ITestOutputHelper output, EventStoreContaine
     {
         var senderProbe = CreateTestProbe();
         
-        var timeout = 3.Seconds();
+        var timeout = TimeSpan.FromSeconds(3);
 
         // arrange
         var myPersistentActor = await ActorRegistry.GetAsync<MyPersistenceActor>();
@@ -53,19 +51,19 @@ public class EventStoreEndToEndSpec(ITestOutputHelper output, EventStoreContaine
         var snapshot = await myPersistentActor.Ask<int[]>(GetAll, timeout);
 
         // assert
-        snapshot.Should().BeEquivalentTo(new[] { 1, 2 });
+        Assert.Equivalent(new[] { 1, 2 }, snapshot, strict: true);
 
         // kill + recreate actor with same PersistentId
         await myPersistentActor.GracefulStop(timeout);
         var myPersistentActor2 = Sys.ActorOf(Props.Create(() => new MyPersistenceActor(PId)));
 
         var snapshot2 = await myPersistentActor2.Ask<int[]>(GetAll, timeout);
-        snapshot2.Should().BeEquivalentTo(new[] { 1, 2 });
+        Assert.Equivalent(new[] { 1, 2 }, snapshot2, strict: true);
 
         // validate configs
         var config = Sys.Settings.Config;
-        config.GetString("akka.persistence.journal.plugin").Should().Be("akka.persistence.journal.eventstore");
-        config.GetString("akka.persistence.snapshot-store.plugin").Should().Be("akka.persistence.snapshot-store.eventstore");
+        Assert.Equal("akka.persistence.journal.eventstore", config.GetString("akka.persistence.journal.plugin"));
+        Assert.Equal("akka.persistence.snapshot-store.eventstore", config.GetString("akka.persistence.snapshot-store.plugin"));
 
         // validate that query is working
         var readJournal = Sys.ReadJournalFor<EventStoreReadJournal>("akka.persistence.query.journal.eventstore");

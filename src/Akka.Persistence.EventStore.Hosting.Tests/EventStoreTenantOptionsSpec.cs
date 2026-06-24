@@ -1,6 +1,5 @@
 using Akka.Configuration;
 using Akka.Persistence.EventStore.Configuration;
-using FluentAssertions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Hosting.Tests;
@@ -24,7 +23,7 @@ akka.persistence.eventstore.tenant {
 
         actualConfig = actualConfig.GetConfig(EventStorePersistence.TenantConfigPath);
 
-        actualConfig.GetString("tenant-stream-name-pattern").Should().Be(defaultConfig.GetString("tenant-stream-name-pattern"));
+        Assert.Equal(defaultConfig.GetString("tenant-stream-name-pattern"), actualConfig.GetString("tenant-stream-name-pattern"));
     }
 
     [Fact(DisplayName = "Custom Options should modify default config")]
@@ -40,6 +39,6 @@ akka.persistence.eventstore.tenant {
         
         var config = new EventStoreTenantSettings(tenantConfig);
 
-        config.TenantStreamNamePattern.Should().Be("custom-tenant-stream-[[TENANT_NAME]]");
+        Assert.Equal("custom-tenant-stream-[[TENANT_NAME]]", config.TenantStreamNamePattern);
     }
 }

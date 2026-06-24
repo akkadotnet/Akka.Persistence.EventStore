@@ -3,7 +3,6 @@ using Akka.Persistence.EventStore.Streams;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using EventStore.Client;
-using FluentAssertions;
 using Xunit;
 
 namespace Akka.Persistence.EventStore.Tests.Issues;
@@ -87,13 +86,10 @@ public class Issue81_Problem_with_concurrent_ack_and_nack : Akka.TestKit.Xunit.T
             .Take(numberOfEvents)
             .RunWith(Sink.Ignore<PersistentSubscriptionEvent>(), Sys.Materializer());
 
-        var act = async () => await task;
+        await task.WaitAsync(TimeSpan.FromSeconds(30));
 
-        await act.Should()
-            .CompleteWithinAsync(TimeSpan.FromSeconds(30));
-
-        errors.Should().BeEmpty("concurrent Ack calls should not throw exceptions");
-        ackedCount.Should().Be(numberOfEvents, "all {0} events should be acked successfully", numberOfEvents);
+        Assert.Empty(errors);
+        Assert.Equal(numberOfEvents, ackedCount);
     }
     
     [Fact]
@@ -147,13 +143,10 @@ public class Issue81_Problem_with_concurrent_ack_and_nack : Akka.TestKit.Xunit.T
             .Take(numberOfEvents)
             .RunWith(Sink.Ignore<PersistentSubscriptionEvent>(), Sys.Materializer());
 
-        var act = async () => await task;
+        await task.WaitAsync(TimeSpan.FromSeconds(30));
 
-        await act.Should()
-            .CompleteWithinAsync(TimeSpan.FromSeconds(30));
-
-        errors.Should().BeEmpty("concurrent Nack calls should not throw exceptions");
-        nackedCount.Should().Be(numberOfEvents, "all {0} events should be nacked successfully", numberOfEvents);
+        Assert.Empty(errors);
+        Assert.Equal(numberOfEvents, nackedCount);
     }
 }
 
