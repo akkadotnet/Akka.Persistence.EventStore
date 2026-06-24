@@ -14,6 +14,7 @@
     <PackageVersion Include="Akka.Persistence" Version="$(AkkaVersion)" />
     <PackageVersion Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
     <PackageVersion Include="Akka.Persistence.TestKit.Xunit2" Version="$(AkkaVersion)" />
+    <PackageVersion Include="Akka.TestKit.Xunit" Version="$(AkkaVersion)" />
   </ItemGroup>
   <!-- EventStore Package Versions -->
   <ItemGroup>
