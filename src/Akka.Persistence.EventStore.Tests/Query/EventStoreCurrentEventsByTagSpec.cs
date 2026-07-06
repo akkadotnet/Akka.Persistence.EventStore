@@ -5,7 +5,6 @@ using Akka.Persistence.TCK.Query;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.Streams.TestKit;
-using FluentAssertions;
 using Xunit;
 using Xunit.Sdk;
 
@@ -31,7 +30,9 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         foreach (var _ in Enumerable.Range(1, 150))
         {
             a.Tell("a green apple");
-            ExpectMsg("a green apple-done");
+            // NOTE: this is a synchronous `override void` TCK method, so the async Expect*Async
+            // variants cannot be awaited here; pass the token to the synchronous overload instead.
+            ExpectMsg("a green apple-done", cancellationToken: TestContext.Current.CancellationToken);
         }
         
         Thread.Sleep(TimeSpan.FromMilliseconds(300));
@@ -44,8 +45,8 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
             ExpectEnvelope(probe, "a", i, "a green apple", "green");
         }
 
-        probe.ExpectComplete();
-        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
+        probe.ExpectComplete(TestContext.Current.CancellationToken);
+        probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
     }
     
     [Fact]
@@ -56,30 +57,31 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
 
         var actor = Sys.ActorOf(Query.TestActor.Props("a"));
         actor.Tell("a green apple");
-        ExpectMsg("a green apple-done");
-        
+        await ExpectMsgAsync<string>("a green apple-done", cancellationToken: TestContext.Current.CancellationToken);
+
         const string tag = "green";
 
         var round1 = await journal.CurrentEventsByTag(tag, Offset.NoOffset())
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
-        round1.Should().HaveCount(1);
+        Assert.Single(round1);
 
         var item1Offset = round1[0].Offset;
-        round1[0].Offset.Should().BeOfType<Sequence>().And.Be(Offset.Sequence(0));
+        Assert.IsType<Sequence>(round1[0].Offset);
+        Assert.Equal(Offset.Sequence(0), round1[0].Offset);
 
         var round2 = await journal.CurrentEventsByTag(tag, item1Offset)
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
-        round2.Should().BeEmpty();
+        Assert.Empty(round2);
 
         actor.Tell("a green banana");
-        ExpectMsg("a green banana-done");
+        await ExpectMsgAsync<string>("a green banana-done", cancellationToken: TestContext.Current.CancellationToken);
 
-        await Task.Delay(TimeSpan.FromMilliseconds(300));
+        await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
         
         var round3 = await journal.CurrentEventsByTag(tag, item1Offset)
             .RunWith(Sink.Seq<EventEnvelope>(), Sys.Materializer());
         
-        round3.Should().HaveCount(1);
+        Assert.Single(round3);
     }
     
     private void ExpectEnvelope(
@@ -90,14 +92,14 @@ public class EventStoreCurrentEventsByTagSpec : CurrentEventsByTagSpec
         string tag)
     {
         var envelope = probe.ExpectNext<EventEnvelope>(_ => true);
-        envelope.PersistenceId.Should().Be(persistenceId);
-        envelope.SequenceNr.Should().Be(sequenceNr);
-        envelope.Event.Should().Be(@event);
+        Assert.Equal(persistenceId, envelope.PersistenceId);
+        Assert.Equal(sequenceNr, envelope.SequenceNr);
+        Assert.Equal(@event, envelope.Event);
         
         if (SupportsTagsInEventEnvelope)
         {
-            envelope.Tags.Should().NotBeNull();
-            envelope.Tags.Should().Contain(tag);
+            Assert.NotNull(envelope.Tags);
+            Assert.Contains(tag, envelope.Tags);
         }
     }
 }

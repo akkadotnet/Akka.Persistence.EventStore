@@ -4,7 +4,7 @@ using Akka.Persistence.EventStore.Benchmarks.BenchmarkActors;
 using Akka.Persistence.EventStore.Benchmarks.Columns;
 using Akka.Routing;
 using Akka.TestKit;
-using Akka.TestKit.Xunit2;
+using Akka.TestKit.Xunit;
 using Akka.Util.Internal;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
