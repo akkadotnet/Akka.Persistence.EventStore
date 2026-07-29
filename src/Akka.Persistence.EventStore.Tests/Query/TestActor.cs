@@ -4,6 +4,8 @@ namespace Akka.Persistence.EventStore.Tests.Query;
 
 internal class TestActor : UntypedPersistentActor
 {
+    private IActorRef? _deleteRequester;
+
     public static Props Props(string persistenceId) => Actor.Props.Create(() => new TestActor(persistenceId));
 
     public sealed class DeleteCommand
@@ -32,8 +34,16 @@ internal class TestActor : UntypedPersistentActor
         switch (message)
         {
             case DeleteCommand delete:
+                _deleteRequester = Sender;
                 DeleteMessages(delete.ToSequenceNr);
-                Sender.Tell($"{delete.ToSequenceNr}-deleted");
+                break;
+            case DeleteMessagesSuccess success:
+                _deleteRequester?.Tell($"{success.ToSequenceNr}-deleted");
+                _deleteRequester = null;
+                break;
+            case DeleteMessagesFailure failure:
+                _deleteRequester?.Tell(new Status.Failure(failure.Cause));
+                _deleteRequester = null;
                 break;
             case string cmd:
                 var sender = Sender;

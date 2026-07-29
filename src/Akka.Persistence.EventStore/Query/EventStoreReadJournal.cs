@@ -94,46 +94,61 @@ public class EventStoreReadJournal
             .Select(r => r.Data.PersistenceId);
     }
 
-    public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive(
-            _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
-            offset),
-        true,
+    public Source<EventEnvelope, NotUsed> EventsByTag(string tag, Offset offset) => EventsFromOffsetSource(
+        _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
+        offset,
         true);
 
-    public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive(
-            _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
-            offset),
-        false,
+    public Source<EventEnvelope, NotUsed> CurrentEventsByTag(string tag, Offset offset) => EventsFromOffsetSource(
+        _writeSettings.GetTaggedStreamName(tag, _tenantSettings),
+        offset,
+        false);
+
+    public Source<EventEnvelope, NotUsed> AllEvents(Offset offset) => EventsFromOffsetSource(
+        _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
+        offset,
         true);
 
-    public Source<EventEnvelope, NotUsed> AllEvents(Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive(
-            _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
-            offset),
-        true,
-        true);
+    public Source<EventEnvelope, NotUsed> CurrentAllEvents(Offset offset) => EventsFromOffsetSource(
+        _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
+        offset,
+        false);
 
-    public Source<EventEnvelope, NotUsed> CurrentAllEvents(Offset offset) => EventsFromStreamSource(
-        EventStoreEventStreamFilter.FromOffsetExclusive(
-            _writeSettings.GetPersistedEventsStreamName(_tenantSettings),
-            offset),
-        false,
-        true);
+    private Source<EventEnvelope, NotUsed> EventsFromOffsetSource(
+        string streamName,
+        Offset offset,
+        bool continuous)
+    {
+        if (offset is not FromEnd fromEnd)
+        {
+            return EventsFromStreamSource(
+                EventStoreEventStreamFilter.FromOffsetExclusive(streamName, offset),
+                continuous,
+                true);
+        }
+
+        // Resolve the relative offset independently for every materialization. Reading one extra link gives us the
+        // exclusive anchor immediately before the requested window, after which the normal ascending query can run.
+        var fromStart = EventStoreEventStreamFilter.FromStart(streamName);
+        var fromEndFilter = EventStoreEventStreamFilter.FromEnd(streamName);
+        return ReplaysFromStreamSource(fromEndFilter, continuous: false, resolveLinkTos: true)
+            // Match the forward query's event-adapter visibility before counting. Deleted/truncated target events
+            // leave unresolved projection links; deserialization removes those while retaining each surviving link's
+            // selected-stream revision in ReplayCompletion.Position.
+            .SelectMany(replay => AdaptEvents(replay.Data).Select(_ => replay))
+            .Skip(fromEnd.Count)
+            .Take(1)
+            .Select(replay => EventStoreEventStreamFilter.FromOffsetExclusive(
+                streamName,
+                new Sequence(replay.Position.ToInt64())))
+            .OrElse(Source.Single(fromStart))
+            .ConcatMany(filter => EventsFromStreamSource(filter, continuous, true));
+    }
 
     private Source<EventEnvelope, NotUsed> EventsFromStreamSource(
         EventStoreEventStreamFilter filter,
         bool continuous,
-        bool resolveLinkTos) => EventStoreSource
-        .FromStream(
-            _eventStoreClient,
-            filter,
-            resolveLinkTos,
-            continuous,
-            _settings.NoStreamTimeout)
-        .DeSerializeEventWith(_adapter)
-        .Filter(filter)
+        bool resolveLinkTos) => ReplaysFromStreamSource(filter, continuous, resolveLinkTos)
         .SelectMany(r =>
             AdaptEvents(r.Data)
                 .Select(_ => new { representation = r.Data, ordering = r.Position }))
@@ -146,6 +161,19 @@ public class EventStoreReadJournal
                     @event: r.representation.Payload,
                     timestamp: r.representation.Timestamp,
                     []));
+
+    private Source<ReplayCompletion<IPersistentRepresentation>, NotUsed> ReplaysFromStreamSource(
+        EventStoreEventStreamFilter filter,
+        bool continuous,
+        bool resolveLinkTos) => EventStoreSource
+        .FromStream(
+            _eventStoreClient,
+            filter,
+            resolveLinkTos,
+            continuous,
+            _settings.NoStreamTimeout)
+        .DeSerializeEventWith(_adapter)
+        .Filter(filter);
 
     private ImmutableList<IPersistentRepresentation> AdaptEvents(
         IPersistentRepresentation persistentRepresentation)

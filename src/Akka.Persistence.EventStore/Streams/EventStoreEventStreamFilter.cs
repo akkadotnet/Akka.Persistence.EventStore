@@ -105,11 +105,18 @@ public record EventStoreEventStreamFilter(
         long maxSequenceNumber = long.MaxValue,
         Direction direction = Direction.Forwards)
     {
+        var from = offset switch
+        {
+            null or NoOffset => StreamPosition.Start,
+            Sequence seq => StreamPosition.FromInt64(seq.Value + 1),
+            _ => throw new ArgumentException(
+                $"Offset type [{offset.GetType().Name}] is not supported.",
+                nameof(offset))
+        };
+
         return new EventStoreEventStreamFilter(
             streamName,
-            offset is Sequence seq
-                ? StreamPosition.FromInt64(seq.Value + 1)
-                : StreamPosition.Start,
+            from,
             minSequenceNumber,
             maxSequenceNumber,
             direction);
