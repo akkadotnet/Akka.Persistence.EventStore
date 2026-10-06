@@ -42,13 +42,13 @@ jobs:
       - name: "dotnet build"
         run: dotnet build -c Release
 
-      # .NET Framework tests can't run reliably on Linux, so we only do .NET 8
+      # net10.0 is the only target framework
 
       - name: "dotnet test"
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            dotnet test -c Release --framework net8.0
+            dotnet test -c Release --framework net10.0
           else
             dotnet test -c Release
           fi

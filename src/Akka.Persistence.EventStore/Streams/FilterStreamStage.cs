@@ -18,7 +18,7 @@ public sealed class FilterStreamStage<TSource>(IEventStoreStreamFilter<TSource> 
         public Logic(FilterStreamStage<TSource> stage, Attributes inheritedAttributes) : base(stage.Shape)
         {
             _stage = stage;
-            var attr = inheritedAttributes.GetAttribute<ActorAttributes.SupervisionStrategy?>(null);
+            var attr = inheritedAttributes.GetAttribute<ActorAttributes.SupervisionStrategy>(null);
             _decider = attr != null ? attr.Decider : Deciders.StoppingDecider;
 
             SetHandler(stage.Inlet, this);
