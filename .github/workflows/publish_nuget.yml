@@ -48,7 +48,7 @@ jobs:
       id: create_release
       with:
         draft: false
-        prerelease: false
+        prerelease: ${{ contains(github.ref_name, '-') }}
         release_name: 'Akka.Persistence.EventStore ${{ github.ref_name }}'
         tag_name: ${{ github.ref }}
         body_path: RELEASE_NOTES_LATEST.md
