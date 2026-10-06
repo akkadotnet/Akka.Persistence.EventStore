@@ -52,12 +52,6 @@ public static class HostingExtensions
             DisableRevisionCheck = disableRevisionCheck
         };
         
-        var adapters = new AkkaPersistenceJournalBuilder(journalOptions.Identifier, builder);
-        
-        journalBuilder?.Invoke(adapters);
-        
-        journalOptions.Adapters = adapters;
-        
         var snapshotOptions = new EventStoreSnapshotOptions(isDefaultPlugin, pluginIdentifier)
         {
             ConnectionString = connectionString,
@@ -76,9 +70,9 @@ public static class HostingExtensions
 
         return mode switch
         {
-            PersistenceMode.Journal => builder.WithEventStorePersistence(journalOptions, tenantOptions: tenantOptions),
+            PersistenceMode.Journal => builder.WithEventStorePersistence(journalOptions, tenantOptions: tenantOptions, configureJournal: journalBuilder),
             PersistenceMode.SnapshotStore => builder.WithEventStorePersistence(null, snapshotOptions, tenantOptions),
-            PersistenceMode.Both => builder.WithEventStorePersistence(journalOptions, snapshotOptions, tenantOptions),
+            PersistenceMode.Both => builder.WithEventStorePersistence(journalOptions, snapshotOptions, tenantOptions, journalBuilder),
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Invalid PersistenceMode defined."),
         };
     }
@@ -87,7 +81,8 @@ public static class HostingExtensions
         this AkkaConfigurationBuilder builder,
         EventStoreJournalOptions? journalOptions = null,
         EventStoreSnapshotOptions? snapshotOptions = null,
-        EventStoreTenantOptions? tenantOptions = null)
+        EventStoreTenantOptions? tenantOptions = null,
+        Action<AkkaPersistenceJournalBuilder>? configureJournal = null)
     {
         var config = (journalOptions, snapshotOptions) switch
         {
@@ -96,8 +91,7 @@ public static class HostingExtensions
 
             (_, null) =>
                 builder
-                    .AddHocon(journalOptions.ToConfig(), HoconAddMode.Prepend)
-                    .AddHocon(journalOptions.DefaultConfig, HoconAddMode.Append)
+                    .WithJournal(journalOptions, configureJournal)
                     .AddHocon(journalOptions.DefaultQueryConfig, HoconAddMode.Append),
 
             (null, _) =>
@@ -107,9 +101,8 @@ public static class HostingExtensions
 
             (_, _) =>
                 builder
-                    .AddHocon(journalOptions.ToConfig(), HoconAddMode.Prepend)
+                    .WithJournal(journalOptions, configureJournal)
                     .AddHocon(snapshotOptions.ToConfig(), HoconAddMode.Prepend)
-                    .AddHocon(journalOptions.DefaultConfig, HoconAddMode.Append)
                     .AddHocon(snapshotOptions.DefaultConfig, HoconAddMode.Append)
                     .AddHocon(journalOptions.DefaultQueryConfig, HoconAddMode.Append)
         };

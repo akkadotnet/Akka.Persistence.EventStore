@@ -1,3 +1,8 @@
+#### 1.6.0-beta2 October 6th, 2026 ####
+* Built against Akka.NET 1.6.0-beta2 (Akka.NET, Akka.Persistence.Hosting and the test packages)
+* Libraries now target net10.0 only. net6.0 is no longer supported; stay on the 1.5.x line for earlier runtimes.
+* `WithEventStorePersistence`: the `journalBuilder` callback now runs (event adapters and health checks); it was silently ignored before. Added an optional `configureJournal` parameter to the `EventStoreJournalOptions` overload.
+
 #### 1.5.70 July 6th, 2026 ####
 * [Bumped Akka to version 1.5.70](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/88)
 * [Fixed an issue with concurrent writes for persistent subscriptions](https://github.com/akkadotnet/Akka.Persistence.EventStore/pull/83)
