@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Reflection;
 using Akka.Actor;
 using Akka.Persistence.EventStore.Configuration;
 using Akka.Persistence.Journal;
@@ -10,6 +11,8 @@ namespace Akka.Persistence.EventStore.Serialization;
 public class DefaultMessageAdapter(Akka.Serialization.Serialization serialization, ISettingsWithAdapter settings) 
     : IMessageAdapter
 {
+    private bool? _usesAkkaSerialization;
+
     public async Task<EventData> Adapt(IPersistentRepresentation persistentMessage)
     {
         var payload = persistentMessage.Payload;
@@ -23,20 +26,25 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         
         persistentMessage = persistentMessage.WithPayload(payload).WithManifest(GetManifest(payload.GetType()));
 
-        var serializedBody = await Serialize(payload);
-        var serializedMetadata = await Serialize(GetEventMetadata(persistentMessage, tags));
+        var serializedPayload = await SerializePayload(payload);
+        var metadata = GetEventMetadata(persistentMessage, tags);
+        SetSerializerMetadata(metadata, serializedPayload);
         
-        return new EventData(Uuid.NewUuid(), GetEventType(payload), serializedBody, serializedMetadata);
+        var serializedMetadata = await Serialize(metadata);
+        
+        return new EventData(Uuid.NewUuid(), GetEventType(payload), serializedPayload.Data, serializedMetadata);
     }
 
     public async Task<EventData> Adapt(SnapshotMetadata snapshotMetadata, object snapshot)
     {
         var metadata = GetSnapshotMetadata(snapshotMetadata, GetManifest(snapshot.GetType()));
 
-        var serializedBody = await Serialize(snapshot);
+        var serializedPayload = await SerializePayload(snapshot);
+        SetSerializerMetadata(metadata, serializedPayload);
+        
         var serializedMetadata = await Serialize(metadata);
 
-        return new EventData(Uuid.NewUuid(), GetEventType(snapshot), serializedBody, serializedMetadata);
+        return new EventData(Uuid.NewUuid(), GetEventType(snapshot), serializedPayload.Data, serializedMetadata);
     }
 
     public async Task<IPersistentRepresentation?> AdaptEvent(ResolvedEvent evnt)
@@ -49,12 +57,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         if (metadata.journalType != Constants.JournalTypes.WriteJournal)
             return null;
 
-        var payloadType = GetTypeFromManifest(metadata.manifest);
-
-        if (payloadType == null)
-            return null;
-        
-        var payload = await DeSerialize(evnt.Event.Data, payloadType);
+        var payload = await DeSerializePayload(evnt.Event.Data, metadata.manifest, metadata as IStoredSerializerMetadata);
         
         if (payload == null)
             return null;
@@ -80,12 +83,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         if (metadata.journalType != Constants.JournalTypes.SnapshotJournal)
             return null;
 
-        var payloadType = GetTypeFromManifest(metadata.manifest);
-
-        if (payloadType == null)
-            return null;
-
-        var payload = await DeSerialize(evnt.Event.Data, payloadType);
+        var payload = await DeSerializePayload(evnt.Event.Data, metadata.manifest, metadata as IStoredSerializerMetadata);
 
         if (payload == null)
             return null;
@@ -98,6 +96,92 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
     public virtual string GetManifest(Type type)
     {
         return type.ToClrTypeName();
+    }
+
+    /// <summary>
+    /// Serializes an event or snapshot payload. When the payload goes through Akka.NET serialization
+    /// (<see cref="Serialize"/> and <see cref="DeSerialize"/> are not overridden), the result carries the
+    /// serializer id and serializer manifest, which get stored in the metadata so the payload can be read back
+    /// with the exact serializer that wrote it.
+    /// </summary>
+    [PublicAPI]
+    protected virtual async Task<SerializedPayload> SerializePayload(object payload)
+    {
+        if (!UsesAkkaSerialization)
+            return new SerializedPayload(await Serialize(payload), null, null);
+
+        var serializer = serialization.FindSerializerForType(payload.GetType(), settings.DefaultSerializer);
+        var manifest = Akka.Serialization.Serialization.ManifestFor(serializer, payload);
+
+        return new SerializedPayload(serializer.ToBinary(payload), serializer.Identifier, manifest);
+    }
+
+    /// <summary>
+    /// Deserializes an event or snapshot payload. Uses the stored serializer id and serializer manifest when
+    /// present, and otherwise falls back to resolving the CLR type from <paramref name="manifest"/>
+    /// (data written before serializer metadata was stored, or by an adapter with custom serialization).
+    /// </summary>
+    [PublicAPI]
+    protected virtual async Task<object?> DeSerializePayload(
+        ReadOnlyMemory<byte> data,
+        string manifest,
+        IStoredSerializerMetadata? serializerMetadata)
+    {
+        if (serializerMetadata?.serializerId is { } serializerId)
+        {
+            if (!string.IsNullOrEmpty(serializerMetadata.serializerManifest))
+                return serialization.Deserialize(data.ToArray(), serializerId, serializerMetadata.serializerManifest);
+
+            // the serializer doesn't use string manifests (e.g. the default JSON serializer),
+            // so hand it the CLR type, just like the legacy path does
+            var type = GetTypeFromManifest(manifest);
+
+            return type == null ? null : serialization.Deserialize(data.ToArray(), serializerId, type);
+        }
+
+        var payloadType = GetTypeFromManifest(manifest);
+
+        if (payloadType == null)
+            return null;
+
+        return await DeSerialize(data, payloadType);
+    }
+
+    /// <summary>
+    /// True when payloads go through Akka.NET serialization, i.e. a subclass hasn't overridden
+    /// <see cref="Serialize"/> or <see cref="DeSerialize"/> (custom formats, encryption, etc).
+    /// Only then do we store the serializer id and manifest.
+    /// </summary>
+    private bool UsesAkkaSerialization => _usesAkkaSerialization ??=
+        !IsOverridden(nameof(Serialize), [typeof(object)])
+        && !IsOverridden(nameof(DeSerialize), [typeof(ReadOnlyMemory<byte>), typeof(Type)]);
+
+    private bool IsOverridden(string methodName, Type[] parameterTypes)
+    {
+        try
+        {
+            var method = GetType().GetMethod(
+                methodName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null,
+                parameterTypes,
+                null);
+
+            return method == null || method.DeclaringType != typeof(DefaultMessageAdapter);
+        }
+        catch (AmbiguousMatchException)
+        {
+            return true;
+        }
+    }
+
+    private static void SetSerializerMetadata(object metadata, SerializedPayload payload)
+    {
+        if (payload.SerializerId == null || metadata is not IStoredSerializerMetadata serializerMetadata)
+            return;
+
+        serializerMetadata.serializerId = payload.SerializerId;
+        serializerMetadata.serializerManifest = payload.SerializerManifest;
     }
 
     [PublicAPI]
@@ -187,8 +271,31 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         IImmutableSet<string> tags { get; set; }
     }
     
+    /// <summary>
+    /// The result of serializing an event or snapshot payload. <see cref="SerializerId"/> is null when the
+    /// payload wasn't serialized through Akka.NET serialization.
+    /// </summary>
     [PublicAPI]
-    public class StoredEventMetadata : IStoredEventMetadata
+    public sealed record SerializedPayload(
+        ReadOnlyMemory<byte> Data,
+        int? SerializerId,
+        string? SerializerManifest);
+
+    /// <summary>
+    /// Metadata that records which Akka.NET serializer wrote the payload, and with which manifest.
+    /// Implemented by <see cref="StoredEventMetadata"/> and <see cref="StoredSnapshotMetadata"/>.
+    /// </summary>
+    [PublicAPI]
+    public interface IStoredSerializerMetadata
+    {
+        // ReSharper disable once InconsistentNaming
+        int? serializerId { get; set; }
+        // ReSharper disable once InconsistentNaming
+        string? serializerManifest { get; set; }
+    }
+    
+    [PublicAPI]
+    public class StoredEventMetadata : IStoredEventMetadata, IStoredSerializerMetadata
     {
         public StoredEventMetadata()
         {
@@ -223,6 +330,8 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         public string tenant { get; set; } = null!;
         public IImmutableSet<string> tags { get; set; } = ImmutableHashSet<string>.Empty;
         public IActorRef? sender { get; set; }
+        public int? serializerId { get; set; }
+        public string? serializerManifest { get; set; }
     }
     
     [PublicAPI]
@@ -241,7 +350,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
     }
     
     [PublicAPI]
-    public class StoredSnapshotMetadata : IStoredSnapshotMetadata
+    public class StoredSnapshotMetadata : IStoredSnapshotMetadata, IStoredSerializerMetadata
     {
         public StoredSnapshotMetadata()
         {
@@ -268,5 +377,7 @@ public class DefaultMessageAdapter(Akka.Serialization.Serialization serializatio
         // ReSharper disable once InconsistentNaming
         public string tenant { get; set; } = null!;
         public string journalType { get; set; } = null!;
+        public int? serializerId { get; set; }
+        public string? serializerManifest { get; set; }
     }
 }

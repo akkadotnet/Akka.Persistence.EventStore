@@ -98,9 +98,16 @@ following information:
   "journalType": "WriteJournal",
   "timestamp": 123456789,
   "tenant": "",
-  "tags": []
+  "tags": [],
+  "serializerId": 1,
+  "serializerManifest": ""
 }
 ```
+
+`serializerId` and `serializerManifest` name the Akka.NET serializer that wrote the payload, and the manifest it used.
+The plugin reads the payload back with them. `manifest` still holds the CLR type name. Events without a
+`serializerId` (written before 1.6.0-beta3, or by an adapter that overrides `Serialize`/`DeSerialize`) are read
+through the CLR type name.
 
 If you are happy with the default serialization and metadata, but want to just augment the metadata or data, or do any of the following:
 
