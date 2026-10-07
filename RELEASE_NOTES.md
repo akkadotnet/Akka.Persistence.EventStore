@@ -1,3 +1,8 @@
+#### 1.6.0-beta3 October 7th, 2026 ####
+* Built against Akka.NET 1.6.0-beta3 (Akka.NET, Akka.Persistence.Hosting and the test packages)
+* Events and snapshots serialized with source-generated (`Akka.Serialization.V2`) serializers now round-trip ([akkadotnet/akka.net#8784](https://github.com/akkadotnet/akka.net/issues/8784)). The default adapter stores the serializer id and serializer manifest in the event and snapshot metadata (new `serializerId` and `serializerManifest` fields) and reads payloads back with them. Data written by earlier versions has no serializer id and still reads through the CLR type name, as before.
+* Events and snapshots written by 1.6.0-beta2 with a source-generated serializer can't be read: that version stored no serializer id.
+
 #### 1.6.0-beta2 October 6th, 2026 ####
 * Built against Akka.NET 1.6.0-beta2 (Akka.NET, Akka.Persistence.Hosting and the test packages)
 * Libraries now target net10.0 only. net6.0 is no longer supported; stay on the 1.5.x line for earlier runtimes.
