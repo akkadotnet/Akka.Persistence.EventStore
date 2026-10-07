@@ -1,3 +1,7 @@
+#### 1.6.0-beta3 October 7th, 2026 ####
+* Built against Akka.NET 1.6.0-beta3.
+* Events and snapshots written with serializers that use their own manifest strings, including source-generated serializers, still can't be read back by this plugin (tracked in #93).
+
 #### 1.6.0-beta2 October 6th, 2026 ####
 * Built against Akka.NET 1.6.0-beta2 (Akka.NET, Akka.Persistence.Hosting and the test packages)
 * Libraries now target net10.0 only. net6.0 is no longer supported; stay on the 1.5.x line for earlier runtimes.
